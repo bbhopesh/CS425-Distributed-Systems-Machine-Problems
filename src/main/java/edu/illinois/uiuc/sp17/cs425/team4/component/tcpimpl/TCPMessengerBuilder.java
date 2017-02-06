@@ -1,9 +1,11 @@
-package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
+package edu.illinois.uiuc.sp17.cs425.team4.component.tcpimpl;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.concurrent.ExecutorService;
 
+import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
+import edu.illinois.uiuc.sp17.cs425.team4.component.MessageAdaptor;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Messenger;
 import net.jcip.annotations.NotThreadSafe;
 
@@ -27,6 +29,10 @@ public class TCPMessengerBuilder implements Messenger.Builder {
 	private Integer outgoingSocketCacheSize;
 	/** Thread pool that TCP messenger should use to submit new tasks. */
 	private ExecutorService threadPool;
+	/** Message Adaptor. */
+	private MessageAdaptor messageAdaptor;
+	/** Identity of this process. This will be typically used to communicate consistently with other processes.*/
+	private Process myIdentity;
 	
 	// TODO might want to consider taking ServerSocket object from outside.
 	
@@ -117,9 +123,46 @@ public class TCPMessengerBuilder implements Messenger.Builder {
 		this.threadPool = threadPool;
 		return this;
 	}
+	
+	/**
+	 * Get message adaptor. 
+	 * @return message adaptor.
+	 */
+	public MessageAdaptor getMessageAdaptor() {
+		return messageAdaptor;
+	}
+
+	/**
+	 * Set message adaptor that should be used by TCP messenger to convert to and from TCP
+	 * messages and high-level messages.
+	 * @param messageAdaptor
+	 */
+	public TCPMessengerBuilder setMessageAdaptor(MessageAdaptor messageAdaptor) {
+		this.messageAdaptor = messageAdaptor;
+		return this;
+	}
+	
+	/**
+	 * Get my identity.
+	 * @return my identity.
+	 */
+	public Process getMyIdentity() {
+		return myIdentity;
+	}
+
+	/**
+	 * Set my identity. This will typically be used to consistently communicate with other processes.
+	 * @param myIdentity my identity.
+	 */
+	public TCPMessengerBuilder setMyIdentity(Process myIdentity) {
+		this.myIdentity = myIdentity;
+		return this;
+	}
 
 	@Override
 	public Messenger build() throws IOException {
 		return new TCPMessenger(this);
 	}
+
+	
 }

@@ -7,23 +7,24 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
-import edu.illinois.uiuc.sp17.cs425.team4.model.impl.ProcessImpl;
+import org.apache.commons.lang3.tuple.Pair;
+
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageReceiptListener;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Messenger;
 import edu.illinois.uiuc.sp17.cs425.team4.component.tcpimpl.PlainVanillaTcpMessageListener;
 import edu.illinois.uiuc.sp17.cs425.team4.component.tcpimpl.TCPMessageAdaptor;
 import edu.illinois.uiuc.sp17.cs425.team4.component.tcpimpl.TCPMessengerBuilder;
+import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
+import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
+import edu.illinois.uiuc.sp17.cs425.team4.model.impl.ProcessImpl;
+import edu.illinois.uiuc.sp17.cs425.team4.model.impl.TextMessageImpl;
 
-public class Main {
-
-	public static void main(String[] args) throws IOException {
-		// TODO Auto-generated method stub
-		System.out.println("Let's start on MP1.");
+public class TCPClient1 {
+	public static void main(String[] args) throws UnknownHostException, IOException {
 		ExecutorService threadPool = Executors.newFixedThreadPool(10);
 		Messenger tcpMessenger = new TCPMessengerBuilder()
 									.setThreadPool(threadPool)
-									.setPort(10005)
+									.setPort(10010)
 									.setMyIdentity(getProcess())
 									.setMessageAdaptor(new TCPMessageAdaptor())
 									.build();
@@ -32,12 +33,21 @@ public class Main {
 		
 		tcpMessenger.registerListener(listener);
 		tcpMessenger.initialize();
+		System.out.println("!!!!!!");
+		Message m = tcpMessenger.send(Pair.of(getProcess1(), new TextMessageImpl("Balle")));
+		System.out.println(">>>>>");
+		System.out.println(m.getMessageType());
 	}
 	
 	private static Process getProcess() throws UnknownHostException {
+		UUID uId = new UUID(85, 36);
+		InetAddress addr = InetAddress.getLocalHost();
+		return new ProcessImpl(addr, 10010, uId);
+	}
+	
+	private static Process getProcess1() throws UnknownHostException {
 		UUID uId = new UUID(34, 78);
 		InetAddress addr = InetAddress.getLocalHost();
 		return new ProcessImpl(addr, 10005, uId);
 	}
-
 }

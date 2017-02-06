@@ -1,8 +1,9 @@
 package edu.illinois.uiuc.sp17.cs425.team4.component;
 
-import java.net.InetAddress;
+import org.apache.commons.lang3.tuple.Pair;
 
-import org.apache.commons.configuration2.Configuration;
+import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
+import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 
 /**
  * Basic interface to send messages and respond to incoming messages.
@@ -29,7 +30,7 @@ public interface Messenger {
 	 * @param configuration configure send using this argument.
 	 * @return The response from the server.
 	 */
-	public byte[] send(InetAddress sendTo, byte[] msg, Configuration configuration);
+	public Message send(Pair<Process, Message> dstnAndMsg);
 	
 	/**
 	 * Register the listener that should be called when a message is received for this process.

@@ -4,8 +4,6 @@ import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 
-import edu.illinois.uiuc.sp17.cs425.team4.component.Codec;
-import edu.illinois.uiuc.sp17.cs425.team4.component.impl.StringCodec;
 import edu.illinois.uiuc.sp17.cs425.team4.util.IOUtils;
 
 class TCPClient
@@ -24,7 +22,7 @@ class TCPClient
   outToServer.writeInt(sentenceBytes.length);
   outToServer.write(sentenceBytes);
   
-  Codec<String> stringCodec = new StringCodec();
+  //Codec<String> stringCodec = new StringCodec();
  /* byte[] serverResponse = IOUtils.readInputSizePrefixed(clientSocket.getInputStream()); 
   //modifiedSentence = inFromServer.readLine();
   //System.out.println("FROM SERVER: " + modifiedSentence);

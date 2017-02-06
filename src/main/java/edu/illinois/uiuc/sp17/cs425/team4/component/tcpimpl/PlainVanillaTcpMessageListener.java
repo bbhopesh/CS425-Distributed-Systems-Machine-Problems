@@ -1,13 +1,13 @@
-package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
+package edu.illinois.uiuc.sp17.cs425.team4.component.tcpimpl;
 
-import java.io.IOException;
 import java.io.PrintStream;
-import java.net.Socket;
-import org.apache.commons.lang3.exception.ContextedRuntimeException;
+import org.apache.commons.lang3.tuple.Pair;
 
-import edu.illinois.uiuc.sp17.cs425.team4.component.Codec;
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageReceiptListener;
-import edu.illinois.uiuc.sp17.cs425.team4.util.IOUtils;
+import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
+import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
+import edu.illinois.uiuc.sp17.cs425.team4.model.TextMessage;
+import edu.illinois.uiuc.sp17.cs425.team4.model.impl.NoOpMessageImpl;
 
 /**
  * Plain Vanilla message listener. 
@@ -18,9 +18,7 @@ import edu.illinois.uiuc.sp17.cs425.team4.util.IOUtils;
  * 
  * @param <T> type to convert incoming byte[] to.
  */
-public class PlainVanillaTcpMessageListener<T> implements MessageReceiptListener {
-	/** Codec. */
-	private final Codec<T> codec;
+public class PlainVanillaTcpMessageListener implements MessageReceiptListener {
 	/** Print stream to which message should be displayed. */
 	private final PrintStream printStream;
 	
@@ -29,21 +27,13 @@ public class PlainVanillaTcpMessageListener<T> implements MessageReceiptListener
 	 * @param codec Codec to be used.
 	 * @param printStream Print stream to print messages to.
 	 */
-	public PlainVanillaTcpMessageListener(Codec<T> codec, PrintStream printStream) {
-		this.codec = codec;
+	public PlainVanillaTcpMessageListener(PrintStream printStream) {
 		this.printStream = printStream;
 	}
 	
-	/**
-	 * Create an instance. Defaults printstream to System.out
-	 * @param codec Codec to be used.
-	 */
-	public PlainVanillaTcpMessageListener(Codec<T> codec) {
-		this(codec, System.out);
-	}
 	
 	
-	@Override
+	/*@Override
 	public void messageReceived(Object incomingConnection) {
 		// Cast to TCP socket.
 		Socket socket = (Socket) incomingConnection;
@@ -62,6 +52,14 @@ public class PlainVanillaTcpMessageListener<T> implements MessageReceiptListener
 			e.printStackTrace();
 		}
 		
+	}*/
+
+	@Override
+	public Message messageReceived(Pair<Process, Message> sourceAndMsg) {
+		System.out.println("Process: " + sourceAndMsg.getLeft().getUUID());
+		TextMessage txt = (TextMessage) sourceAndMsg.getRight();
+		System.out.println("Message: " + txt.getText());
+		return new NoOpMessageImpl();
 	}
 
 }
