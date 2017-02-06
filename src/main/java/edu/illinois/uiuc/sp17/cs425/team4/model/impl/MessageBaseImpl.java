@@ -10,22 +10,39 @@ import org.apache.commons.configuration2.MapConfiguration;
 
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 
+/**
+ * An abstract implementation of a message.
+ * equals and hashcode only consider the UUID and no other attribute.
+ * Child classes are not allowed to override these two methods.
+ * 
+ * @author bbassi2
+ */
 abstract class MessageBaseImpl implements Message, Serializable {
 	
-	/**
-	 * 
-	 */
+	/** Serial Version UID. */
 	private static final long serialVersionUID = -2082386563754210354L;
+	/** Type of message. */
 	private final MessageType messageType;
+	/** Unique identifier of message. */
 	private final UUID universallyUniqueId;
+	/** Metadata associated with the message. */
 	private final Map<String,Object> metaData;
 	
+	/**
+	 * Create an instance.
+	 * @param messageType Message type.
+	 * @param uId Unique identifier for this message.
+	 */
 	public MessageBaseImpl(MessageType messageType, UUID uId) {
 		this.messageType = messageType;
 		this.universallyUniqueId = uId;
 		this.metaData = new ConcurrentHashMap<String, Object>();
 	}
 	
+	/**
+	 * Create an instance with a random identifier.
+	 * @param messageType Message type.
+	 */
 	public MessageBaseImpl(MessageType messageType) {
 		this(messageType, UUID.randomUUID());
 	}
@@ -46,16 +63,15 @@ abstract class MessageBaseImpl implements Message, Serializable {
 	}
 
 	@Override
-	public int hashCode() {
+	public final int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((messageType == null) ? 0 : messageType.hashCode());
 		result = prime * result + ((universallyUniqueId == null) ? 0 : universallyUniqueId.hashCode());
 		return result;
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public final boolean equals(Object obj) {
 		if (this == obj)
 			return true;
 		if (obj == null)
@@ -63,8 +79,6 @@ abstract class MessageBaseImpl implements Message, Serializable {
 		if (getClass() != obj.getClass())
 			return false;
 		MessageBaseImpl other = (MessageBaseImpl) obj;
-		if (messageType != other.messageType)
-			return false;
 		if (universallyUniqueId == null) {
 			if (other.universallyUniqueId != null)
 				return false;
@@ -74,7 +88,4 @@ abstract class MessageBaseImpl implements Message, Serializable {
 	}
 
 	
-
-	
-
 }

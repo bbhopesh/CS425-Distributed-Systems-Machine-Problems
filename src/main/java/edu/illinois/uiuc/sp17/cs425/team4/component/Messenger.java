@@ -20,21 +20,17 @@ public interface Messenger {
 	public void initialize();
 	
 	/**
-	 * Send message to the provided address.
-	 * Configuration object can be used to pass certain parameters to the implementations.
-	 * The configuration is made part of the interface instead of leaving to implementations so that
-	 * each send can be configured differently if required.
-	 * Implementations should treat null configuration as empty configuration.
-	 * @param sendTo Send the message to this address. 
-	 * @param msg Message to be sent.
-	 * @param configuration configure send using this argument.
-	 * @return The response from the server.
+	 * Send message to the given destination.
+	 * @param dstnAndMsg Pair containing message and it's destination.
+	 * @return The reply of the sent message.
 	 */
 	public Message send(Pair<Process, Message> dstnAndMsg);
 	
+	
 	/**
 	 * Register the listener that should be called when a message is received for this process.
-	 * The interface doesn't guarantee the order in which listeners are called if multiple are registered.
+	 * The interface doesn't specify the order in which listeners are called if multiple are registered.
+	 * Neither it does specify minimum and maximum number of listeners that can be registered.
 	 * 
 	 * Ideally, listeners passed to this function should be stateless
 	 * because same listener would be called multiple times on receipt of multiple messages.  
@@ -45,6 +41,7 @@ public interface Messenger {
 	
 	/**
 	 * A builder interface for messenger.
+	 * 
 	 * @author bbassi2
 	 */
 	public static interface Builder {

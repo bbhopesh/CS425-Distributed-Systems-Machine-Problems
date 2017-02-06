@@ -21,8 +21,10 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import net.jcip.annotations.NotThreadSafe;
 
 /**
- * A TCP Server that listens for messages in a loop and notifies everyone who has registered for it.
- * All the notifications are submitted to a thread pool where they run on dedicated threads.
+ * A TCP Server that waits for messages in a loop 
+ * and notifies registered message listener 
+ * Notifications are submitted to a thread pool where it is run on dedicated thread.
+ * Only supports one listener as of now.
  * 
  * @author bbassi2
  */
@@ -64,6 +66,7 @@ final class TCPServer implements Callable<Void> {
 	@Override
 	public Void call() {
 		try {
+			// List to keep active message notifications.
 			List<Future<Void>> pendingMessages = new LinkedList<Future<Void>>();
 			
 			while(true) {
@@ -74,14 +77,14 @@ final class TCPServer implements Callable<Void> {
 				 * from other thread. This will make accept() throw SocketException.
 				*/
 				Socket connectionSocket = this.tcpServerSocket.accept();
-				// notify listeners starting each on different thread.
+				// notify listener on different thread.
 				Callable<Void> messageListenerWrapper = 
 						new MessageListenerWrapper(this.messageListener,
 								connectionSocket, this.messageAdaptor, this.myIdentity);
 				Future<Void> future = this.threadPool.submit(messageListenerWrapper);
 				// Add to list of pending listeners.
 				pendingMessages.add(future);
-				// remove listeners from list that are already done.
+				// check for failures and remove listeners that are already done.
 				checkFailures(pendingMessages);
 			} 
 		} catch (IOException e) {
@@ -101,7 +104,7 @@ final class TCPServer implements Callable<Void> {
 	}
 	
 	/**
-	 * Respond to processed responses.
+	 * Check for failures and remove completed futures.
 	 * @param pendingResponses Responses that were pending till last check.
 	 * @throws InterruptedException if interrupted.
 	 * @throws ExecutionException if future had failed.
@@ -127,7 +130,8 @@ final class TCPServer implements Callable<Void> {
 	 * @return TCP server socket.
 	 * @throws IOException if cannot bind a TCP server to the given port/address.
 	 */
-	private ServerSocket createTcpServerSocket(Integer port, TCPMessengerBuilder builder) throws IOException {
+	private ServerSocket createTcpServerSocket(Integer port, 
+			TCPMessengerBuilder builder) throws IOException {
 		if (builder.getBacklog() == null && builder.getBindAddr() == null) {
 			return new ServerSocket(port);
 		} else if (builder.getBindAddr() == null) {
@@ -160,7 +164,9 @@ final class TCPServer implements Callable<Void> {
 		private final MessageReceiptListener listener;
 		/** Incoming socket for the tcp connection. */
 		private final Socket tcpIncomingSocket;
+		/** Adaptor. */
 		private final MessageAdaptor messageAdaptor;
+		/** Identity to be stamped on outgoing messages. */
 		private final Process myIdentity;
 		
 		/**
@@ -184,11 +190,19 @@ final class TCPServer implements Callable<Void> {
 			// Read the message.
 			Pair<Process,Message> srcAndMsg = 
 					this.messageAdaptor.read(this.tcpIncomingSocket);
-			// Process the message.
+			// Process the message.(Notify listener)
 			Message response = this.listener.messageReceived(srcAndMsg);
 			// Respond.
 			this.messageAdaptor.write(this.tcpIncomingSocket, 
 					Pair.of(this.myIdentity, response));
+			
+			// Try closing connection.
+			try {
+				this.tcpIncomingSocket.close();
+			} catch (IOException e) {
+				// ignore if error occurs while closing socket, just log and move on.
+				e.printStackTrace();
+			}
 			return null;
 		}
 		

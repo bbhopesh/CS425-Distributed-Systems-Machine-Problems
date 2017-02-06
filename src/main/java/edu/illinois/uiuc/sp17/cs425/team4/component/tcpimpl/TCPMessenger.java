@@ -22,10 +22,13 @@ import net.jcip.annotations.ThreadSafe;
 
 /**
  * A messenger that sends and receives messages using TCP protocol.
- * Upon receipt of messages, each registered listener is submitted to a thread pool 
+ * Upon receipt of messages, registered listener is submitted to a thread pool 
  * where it is run on a dedicated thread.
- * The implementation maintains a bounded cache of open Sockets and oldest entries are 
- * removed to make space for the new ones. Default max size of cache is 10.
+ * The implementation maintains a bounded cache of open Sockets for outgoing connections
+ * and oldest entries are removed to make space for the new ones.
+ * Default max size of cache is 10.
+ * 
+ * This implementation only supports one listener as of now.
  * 
  * @author bbassi2
  */
