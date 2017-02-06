@@ -18,6 +18,9 @@ public class NoOpMessageImpl extends MessageBaseImpl implements Serializable {
 		super(MessageType.NO_OP, uId);
 	}
 	
-	
+	@Override
+	public String toString() {
+		return getMessageType().toString();
+	}
 
 }

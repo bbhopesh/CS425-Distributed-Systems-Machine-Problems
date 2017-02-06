@@ -33,9 +33,7 @@ public class TCPClient1 {
 		
 		tcpMessenger.registerListener(listener);
 		tcpMessenger.initialize();
-		System.out.println("!!!!!!");
 		Message m = tcpMessenger.send(Pair.of(getProcess1(), new TextMessageImpl("Balle")));
-		System.out.println(">>>>>");
 		System.out.println(m.getMessageType());
 	}
 	

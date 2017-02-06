@@ -53,6 +53,10 @@ public class TextMessageImpl extends MessageBaseImpl implements TextMessage,Seri
 		return true;
 	}
 	
+	@Override
+	public String toString() {
+		return this.text;
+	}
 	
 	
 }
