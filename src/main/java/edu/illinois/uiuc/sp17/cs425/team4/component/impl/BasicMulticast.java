@@ -13,6 +13,7 @@ import edu.illinois.uiuc.sp17.cs425.team4.component.Multicast;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Model;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
+import edu.illinois.uiuc.sp17.cs425.team4.model.impl.ModelImpl;
 import net.jcip.annotations.NotThreadSafe;
 
 @NotThreadSafe
@@ -33,11 +34,12 @@ public class BasicMulticast implements Multicast, MessageReceiptListener, GroupC
 	private Application registeredApplication;
 
 	
-	public BasicMulticast(GroupManager groupManager, Messenger mesenger, Model model) {
+	public BasicMulticast(GroupManager groupManager, Messenger mesenger) {
 		this.groupManager = groupManager;
 		this.mesenger = mesenger;
 		this.mesenger.registerListener(this);
-		this.model = model;
+		this.mesenger.initialize();
+		this.model = new ModelImpl(this.groupManager.getMyIdentity());
 	}
 	
 	@Override
@@ -73,13 +75,13 @@ public class BasicMulticast implements Multicast, MessageReceiptListener, GroupC
 	@Override
 	public void processJoined(Process j) {
 		this.registeredApplication.deliver(
-				Pair.of(j, model.createProcessJoinedMessage(this.groupManager.getMyIdentity())));
+				Pair.of(j, model.createProcessJoinedMessage()));
 	}
 
 	@Override
 	public void processLeft(Process l) {
 		this.registeredApplication.deliver(
-				Pair.of(l, model.createProcessLeftMessage(this.groupManager.getMyIdentity())));
+				Pair.of(l, model.createProcessLeftMessage()));
 		
 	}
 

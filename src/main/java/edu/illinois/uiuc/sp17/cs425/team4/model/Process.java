@@ -8,6 +8,7 @@ import net.jcip.annotations.Immutable;
 
 /** 
  * Interface to represent a process in a distributed system.
+ * This process is different from a typical OS process. 
  * 
  * @author bbassi2
  */
@@ -23,6 +24,9 @@ public interface Process extends Serializable {
 	
 	/** Port at which process is listening. */
 	public int getPort();
+	
+	/** Get display name of the process. */
+	public String getDisplayName();
 	
 	@Override
 	public int hashCode();

@@ -99,19 +99,24 @@ final class TCPMessenger implements Messenger {
 			this.messageAdaptor.write(s, Pair.of(this.myIdentity, dstnAndMsg.getRight()));
 			// Read response back and ignore source of this msg as source of the response msg will be destionation of original msg.
 			Pair<Process, Message> srcAndMsg = this.messageAdaptor.read(s);
+			s.close();
 			return srcAndMsg == null ? null: srcAndMsg.getRight();
 		} catch (IOException e) {
 			throw new ContextedRuntimeException(e);
 		}
 	}
 	
-	private synchronized Socket getSocket(Process p) throws IOException {
+	/*private synchronized Socket getSocket(Process p) throws IOException {
 		Socket s = this.cache.get(p);
 		if (s == null) {
 			s = new Socket(p.getInetAddress(), p.getPort());
 			this.cache.put(p, s);
 		}
 		return s;
+	}*/
+	
+	private synchronized Socket getSocket(Process p) throws IOException {
+		return new Socket(p.getInetAddress(), p.getPort());
 	}
 
 	@Override

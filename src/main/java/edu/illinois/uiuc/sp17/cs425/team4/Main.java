@@ -37,7 +37,7 @@ public class Main {
 	private static Process getProcess() throws UnknownHostException {
 		UUID uId = new UUID(34, 78);
 		InetAddress addr = InetAddress.getLocalHost();
-		return new ModelImpl().createProcess(addr, 10005, uId);
+		return new ModelImpl().createProcess(addr, 10005,  "Main", uId);
 	}
 
 }

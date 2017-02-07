@@ -25,6 +25,8 @@ class ProcessImpl implements Process, Serializable {
 	private final InetAddress inetAddress;
 	/** Port of the process. */
 	private final int port;
+	/** Display name of the process. */
+	private final String displayName;
 	
 	/**
 	 * Create an instance.
@@ -32,9 +34,10 @@ class ProcessImpl implements Process, Serializable {
 	 * @param port Port of the process.
 	 * @param uId Unique identifier of the process.
 	 */
-	public ProcessImpl(InetAddress inetAddress, int port, UUID uId) {
+	public ProcessImpl(InetAddress inetAddress, int port, String displayName, UUID uId) {
 		this.inetAddress = inetAddress;
 		this.port = port;
+		this.displayName = displayName;
 		this.uId = uId;
 	}
 	
@@ -43,8 +46,8 @@ class ProcessImpl implements Process, Serializable {
 	 * @param inetAddress Address of the process.
 	 * @param port Port of the process.
 	 */
-	public ProcessImpl(InetAddress inetAddress, int port) {
-		this(inetAddress, port, UUID.randomUUID());
+	public ProcessImpl(InetAddress inetAddress, int port, String displayName) {
+		this(inetAddress, port, displayName, UUID.randomUUID());
 	}
 	
 	@Override
@@ -60,6 +63,11 @@ class ProcessImpl implements Process, Serializable {
 	@Override
 	public int getPort() {
 		return this.port;
+	}
+	
+	@Override
+	public String getDisplayName() {
+		return this.displayName;
 	}
 
 	@Override
@@ -86,5 +94,5 @@ class ProcessImpl implements Process, Serializable {
 			return false;
 		return true;
 	}
-	
+
 }

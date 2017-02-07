@@ -11,80 +11,81 @@ import java.util.UUID;
 public interface Model {
 	/**
 	 * Create No Op message with random unique id.
-	 * @param originatingSource specify the originating source.
 	 * @return No Op message.
 	 */
-	public Message createNoOpMessage(Process originatingSource);
+	public Message createNoOpMessage();
 	
 	/**
 	 * Create No Op message with provided unique id.
-	 * @param originatingSource specify the originating source.
 	 * @param uId unique id of the message to be created.
 	 * @return No Op message
 	 */
-	public Message createNoOpMessage(Process originatingSource, UUID uId);
+	public Message createNoOpMessage(UUID uId);
 	
 	/**
 	 * Create text message with random unique id.
-	 * @param originatingSource specify the originating source.
 	 * @param text Text of the message.
 	 * @return Text message
 	 */
-	public TextMessage createTextMessage(Process originatingSource, String text);
+	public TextMessage createTextMessage(String text);
 	
 	/**
 	 * Create text message with provided unique id.
-	 * @param originatingSource specify the originating source.
 	 * @param text Text of the message.
 	 * @param uId unique id of the message to be created.
 	 * @return Text message
 	 */
-	public TextMessage createTextMessage(Process originatingSource, String text, UUID uId);
+	public TextMessage createTextMessage(String text, UUID uId);
 	
 	/**
 	 * Create Process joined message with random unique id.
-	 * @param originatingSource specify the originating source.
 	 * @return Process joined message.
 	 */
-	public Message createProcessJoinedMessage(Process originatingSource);
+	public Message createProcessJoinedMessage();
 	
 	/**
 	 * Create Process joined message with provided unique id.
-	 * @param originatingSource specify the originating source.
 	 * @param uId unique id of the message to be created.
 	 * @return Process joined message.
 	 */
-	public Message createProcessJoinedMessage(Process originatingSource, UUID uId);
+	public Message createProcessJoinedMessage(UUID uId);
 	
 	/**
 	 * Create Process left message with random unique id.
 	 * @param uId unique id of the message to be created.
 	 * @return Process left message.
 	 */
-	public Message createProcessLeftMessage(Process originatingSource);
+	public Message createProcessLeftMessage();
 	
 	/**
 	 * Create Process left message with provided unique id.
-	 * @param originatingSource specify the originating source.
 	 * @param uId unique id of the message to be created.
 	 * @return Process left message.
 	 */
-	public Message createProcessLeftMessage(Process originatingSource, UUID uId);
+	public Message createProcessLeftMessage(UUID uId);
 	
 	/**
 	 * Create process with provided unique id.
 	 * @param inetAddress InetAddress
 	 * @param port Port
+	 * @param displayName Display name of the process.
 	 * @return Process.
 	 */
-	public Process createProcess(InetAddress inetAddress, int port);
+	public Process createProcess(InetAddress inetAddress, int port, String displayName);
 	
 	/**
 	 * Create process with provided unique id.
 	 * @param inetAddress InetAddress
 	 * @param port Port
+	 * @param displayName Display name of the process.
 	 * @param uId Unique id of the process to be created
 	 * @return Process.
 	 */
-	public Process createProcess(InetAddress inetAddress, int port, UUID uId);
+	public Process createProcess(InetAddress inetAddress, int port, String displayName, UUID uId);
+	
+	/** 
+	 * Set which process should be stamped on various model objects as "this" process.
+	 * @param myIdentity process that should be stamped on various model objects as "this" process.
+	 */
+	public void setMyIdentity(Process myIdentity);
 }
