@@ -16,8 +16,7 @@ import edu.illinois.uiuc.sp17.cs425.team4.component.tcpimpl.TCPMessageAdaptor;
 import edu.illinois.uiuc.sp17.cs425.team4.component.tcpimpl.TCPMessengerBuilder;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
-import edu.illinois.uiuc.sp17.cs425.team4.model.impl.ProcessImpl;
-import edu.illinois.uiuc.sp17.cs425.team4.model.impl.TextMessageImpl;
+import edu.illinois.uiuc.sp17.cs425.team4.model.impl.ModelImpl;
 
 public class TCPClient1 {
 	public static void main(String[] args) throws UnknownHostException, IOException {
@@ -33,19 +32,22 @@ public class TCPClient1 {
 		
 		tcpMessenger.registerListener(listener);
 		tcpMessenger.initialize();
-		Message m = tcpMessenger.send(Pair.of(getProcess1(), new TextMessageImpl("Balle")));
-		System.out.println(m.getMessageType());
+		Message m = tcpMessenger.send(Pair.of(getProcess1(), new ModelImpl().createTextMessage(getProcess(), "Balle")));
+		if (m != null) {
+			System.out.println(m.getMessageType());
+		}
+		
 	}
 	
 	private static Process getProcess() throws UnknownHostException {
 		UUID uId = new UUID(85, 36);
 		InetAddress addr = InetAddress.getLocalHost();
-		return new ProcessImpl(addr, 10010, uId);
+		return new ModelImpl().createProcess(addr, 10010, uId);
 	}
 	
 	private static Process getProcess1() throws UnknownHostException {
 		UUID uId = new UUID(34, 78);
 		InetAddress addr = InetAddress.getLocalHost();
-		return new ProcessImpl(addr, 10005, uId);
+		return new ModelImpl().createProcess(addr, 10005, uId);
 	}
 }

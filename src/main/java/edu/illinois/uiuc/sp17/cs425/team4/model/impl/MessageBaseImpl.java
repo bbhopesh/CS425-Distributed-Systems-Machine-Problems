@@ -9,6 +9,7 @@ import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
 
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
+import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 
 /**
  * An abstract implementation of a message.
@@ -27,14 +28,17 @@ abstract class MessageBaseImpl implements Message, Serializable {
 	private final UUID universallyUniqueId;
 	/** Metadata associated with the message. */
 	private final Map<String,Object> metaData;
+	/** Originating source. */
+	private final Process originatingSource;
 	
 	/**
 	 * Create an instance.
 	 * @param messageType Message type.
 	 * @param uId Unique identifier for this message.
 	 */
-	public MessageBaseImpl(MessageType messageType, UUID uId) {
+	public MessageBaseImpl(MessageType messageType, Process originatingSource, UUID uId) {
 		this.messageType = messageType;
+		this.originatingSource = originatingSource;
 		this.universallyUniqueId = uId;
 		this.metaData = new ConcurrentHashMap<String, Object>();
 	}
@@ -43,8 +47,8 @@ abstract class MessageBaseImpl implements Message, Serializable {
 	 * Create an instance with a random identifier.
 	 * @param messageType Message type.
 	 */
-	public MessageBaseImpl(MessageType messageType) {
-		this(messageType, UUID.randomUUID());
+	public MessageBaseImpl(MessageType messageType, Process originatingSource) {
+		this(messageType, originatingSource, UUID.randomUUID());
 	}
 	
 	@Override
@@ -85,6 +89,11 @@ abstract class MessageBaseImpl implements Message, Serializable {
 		} else if (!universallyUniqueId.equals(other.universallyUniqueId))
 			return false;
 		return true;
+	}
+
+	@Override
+	public Process getOriginatingSource() {
+		return this.originatingSource;
 	}
 
 	

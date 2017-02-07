@@ -93,12 +93,13 @@ final class TCPMessenger implements Messenger {
 			checkForFailure();
 		}
 		try {
-			// Opem socket with destination.
+			// Open socket with destination.
 			Socket s = getSocket(dstnAndMsg.getLeft());
 			// Send destination the message and tell them who sent it.
 			this.messageAdaptor.write(s, Pair.of(this.myIdentity, dstnAndMsg.getRight()));
 			// Read response back and ignore source of this msg as source of the response msg will be destionation of original msg.
-			return this.messageAdaptor.read(s).getRight();
+			Pair<Process, Message> srcAndMsg = this.messageAdaptor.read(s);
+			return srcAndMsg == null ? null: srcAndMsg.getRight();
 		} catch (IOException e) {
 			throw new ContextedRuntimeException(e);
 		}
@@ -156,6 +157,8 @@ final class TCPMessenger implements Messenger {
 				Thread.currentThread().interrupt(); // so that code up stack trace is aware of interrupt.
 				throw new ContextedRuntimeException(e);
 			} catch (ExecutionException e) {
+				throw new ContextedRuntimeException(e);
+			} catch (Exception e) {
 				throw new ContextedRuntimeException(e);
 			}
 		}

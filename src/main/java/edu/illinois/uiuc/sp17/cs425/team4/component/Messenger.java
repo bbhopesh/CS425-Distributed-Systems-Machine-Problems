@@ -24,6 +24,7 @@ public interface Messenger {
 	 * @param dstnAndMsg Pair containing message and it's destination.
 	 * @return The reply of the sent message.
 	 */
+	// TODO Add timeout argument to send.
 	public Message send(Pair<Process, Message> dstnAndMsg);
 	
 	

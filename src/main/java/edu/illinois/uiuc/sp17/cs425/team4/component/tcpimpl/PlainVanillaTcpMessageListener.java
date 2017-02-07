@@ -7,7 +7,6 @@ import edu.illinois.uiuc.sp17.cs425.team4.component.MessageReceiptListener;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import edu.illinois.uiuc.sp17.cs425.team4.model.TextMessage;
-import edu.illinois.uiuc.sp17.cs425.team4.model.impl.NoOpMessageImpl;
 
 /**
  * Plain Vanilla message listener. 
@@ -56,10 +55,18 @@ public class PlainVanillaTcpMessageListener implements MessageReceiptListener {
 
 	@Override
 	public Message messageReceived(Pair<Process, Message> sourceAndMsg) {
-		System.out.println("Process: " + sourceAndMsg.getLeft().getUUID());
+		Process x = sourceAndMsg.getLeft();
 		TextMessage txt = (TextMessage) sourceAndMsg.getRight();
-		System.out.println("Message: " + txt.getText());
-		return new NoOpMessageImpl();
+		System.out.println(txt);
+		return null;
+	}
+
+
+
+	@Override
+	public void notifyFailure(Pair<Pair<Process, Message>, Message> failedMsg, Exception exception) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

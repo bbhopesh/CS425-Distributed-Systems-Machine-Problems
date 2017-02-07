@@ -15,7 +15,7 @@ import net.jcip.annotations.Immutable;
  * @author bbassi2
  */
 @Immutable
-public class ProcessImpl implements Process, Serializable {
+class ProcessImpl implements Process, Serializable {
 
 	/** Serial Version UID. */
 	private static final long serialVersionUID = -7747392582909878577L;

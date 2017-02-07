@@ -3,6 +3,7 @@ package edu.illinois.uiuc.sp17.cs425.team4.model.impl;
 import java.io.Serializable;
 import java.util.UUID;
 
+import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import edu.illinois.uiuc.sp17.cs425.team4.model.TextMessage;
 
 /**
@@ -10,7 +11,7 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.TextMessage;
  * 
  * @author bbassi2
  */
-public class TextMessageImpl extends MessageBaseImpl implements TextMessage,Serializable {
+class TextMessageImpl extends MessageBaseImpl implements TextMessage,Serializable {
 
 	/** Serial Version UID. */
 	private static final long serialVersionUID = 3806320361615887426L;
@@ -22,8 +23,8 @@ public class TextMessageImpl extends MessageBaseImpl implements TextMessage,Seri
 	 * Responsibility of assigning unique identifier is left to base class.
 	 * @param text text message.
 	 */
-	public TextMessageImpl(String text) {
-		super(MessageType.TEXT);
+	public TextMessageImpl(Process originatingSource, String text) {
+		super(MessageType.TEXT, originatingSource);
 		this.text = text;
 	}
 	
@@ -32,8 +33,8 @@ public class TextMessageImpl extends MessageBaseImpl implements TextMessage,Seri
 	 * @param text text message.
 	 * @param uId Unique identifier of the message.
 	 */
-	public TextMessageImpl(String text, UUID uId) {
-		super(MessageType.TEXT, uId);
+	public TextMessageImpl(Process originatingSource, String text, UUID uId) {
+		super(MessageType.TEXT, originatingSource, uId);
 		this.text = text;
 	}
 

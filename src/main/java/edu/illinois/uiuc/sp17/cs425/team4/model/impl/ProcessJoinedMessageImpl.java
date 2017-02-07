@@ -5,29 +5,30 @@ import java.util.UUID;
 
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 
+
 /**
- * An implementation of the NO_OP message.
+ * An implementation of the Process joined message.
  * 
  * @author bbassi2
  */
-class NoOpMessageImpl extends MessageBaseImpl implements Serializable {
+class ProcessJoinedMessageImpl extends MessageBaseImpl implements Serializable {
 
 	/** Serial Version UID. */
-	private static final long serialVersionUID = 163257467419369700L;
+	private static final long serialVersionUID = 8568431742044784001L;
 
 	/**
 	 * Create an instance. Leaves responsibility of assigning unique id to base class.
 	 */
-	public NoOpMessageImpl(Process originatingSource) {
-		super(MessageType.NO_OP, originatingSource);
+	public ProcessJoinedMessageImpl(Process originatingSource) {
+		super(MessageType.JOINED, originatingSource);
 	}
 	
 	/**
 	 * Create an instance with the provided unique identifier.
 	 * @param uId unique idnetifier.
 	 */
-	public NoOpMessageImpl(Process originatingSource, UUID uId) {
-		super(MessageType.NO_OP, originatingSource, uId);
+	public ProcessJoinedMessageImpl(Process originatingSource, UUID uId) {
+		super(MessageType.JOINED, originatingSource, uId);
 	}
 	
 	@Override

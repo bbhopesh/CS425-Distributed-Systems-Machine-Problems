@@ -8,7 +8,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
-import edu.illinois.uiuc.sp17.cs425.team4.model.impl.ProcessImpl;
+import edu.illinois.uiuc.sp17.cs425.team4.model.impl.ModelImpl;
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageReceiptListener;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Messenger;
 import edu.illinois.uiuc.sp17.cs425.team4.component.tcpimpl.PlainVanillaTcpMessageListener;
@@ -37,7 +37,7 @@ public class Main {
 	private static Process getProcess() throws UnknownHostException {
 		UUID uId = new UUID(34, 78);
 		InetAddress addr = InetAddress.getLocalHost();
-		return new ProcessImpl(addr, 10005, uId);
+		return new ModelImpl().createProcess(addr, 10005, uId);
 	}
 
 }

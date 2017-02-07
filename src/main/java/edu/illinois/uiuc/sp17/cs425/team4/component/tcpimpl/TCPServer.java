@@ -88,12 +88,18 @@ final class TCPServer implements Callable<Void> {
 				checkFailures(pendingMessages);
 			} 
 		} catch (IOException e) {
+			e.printStackTrace();
 			throw new ContextedRuntimeException(e);
 		} catch (InterruptedException e) {
+			e.printStackTrace();
 			Thread.currentThread().interrupt(); // so that code up stack trace is aware of interrupt.
 			throw new ContextedRuntimeException(e);
 		} catch (ExecutionException e) {
+			e.printStackTrace();
 			throw new ContextedRuntimeException(e);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
 		}
 
 	}
@@ -187,14 +193,27 @@ final class TCPServer implements Callable<Void> {
 		
 		@Override
 		public Void call() {
-			// Read the message.
-			Pair<Process,Message> srcAndMsg = 
-					this.messageAdaptor.read(this.tcpIncomingSocket);
-			// Process the message.(Notify listener)
-			Message response = this.listener.messageReceived(srcAndMsg);
-			// Respond.
-			this.messageAdaptor.write(this.tcpIncomingSocket, 
-					Pair.of(this.myIdentity, response));
+			try {
+				// Read the message.
+				Pair<Process,Message> srcAndMsg = 
+						this.messageAdaptor.read(this.tcpIncomingSocket);
+				// Process the message.(Notify listener)
+				Message response = this.listener.messageReceived(srcAndMsg);
+				// Respond.
+				try {
+					if (response != null) {
+						this.messageAdaptor.write(this.tcpIncomingSocket, 
+								Pair.of(this.myIdentity, response));
+					}
+				} catch (Exception e1) {
+					e1.printStackTrace();
+					this.listener.notifyFailure(Pair.of(srcAndMsg, response), e1);
+					throw e1;
+				}
+			} catch (Exception e1) {
+				e1.printStackTrace();
+				throw e1;
+			}
 			
 			// Try closing connection.
 			try {
