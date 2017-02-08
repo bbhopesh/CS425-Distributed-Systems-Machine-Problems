@@ -4,11 +4,11 @@ import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 
-import edu.illinois.uiuc.sp17.cs425.team4.util.IOUtils;
 
 class TCPClient
 {
- public static void main(String argv[]) throws Exception
+ @SuppressWarnings("unused")
+public static void main(String argv[]) throws Exception
  {
   String sentence;
   String modifiedSentence;

@@ -24,6 +24,7 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.Model;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import edu.illinois.uiuc.sp17.cs425.team4.model.impl.ModelImpl;
 
+@SuppressWarnings("unused")
 public class Test {
 	
 	private static final String MY_NAME = "A";
