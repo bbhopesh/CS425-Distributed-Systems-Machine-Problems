@@ -11,7 +11,6 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageReceiptListener;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Messenger;
-import edu.illinois.uiuc.sp17.cs425.team4.component.tcpimpl.PlainVanillaTcpMessageListener;
 import edu.illinois.uiuc.sp17.cs425.team4.component.tcpimpl.TCPMessageAdaptor;
 import edu.illinois.uiuc.sp17.cs425.team4.component.tcpimpl.TCPMessengerBuilder;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
@@ -29,7 +28,7 @@ public class TCPClient1 {
 									.setMessageAdaptor(new TCPMessageAdaptor())
 									.build();
 		MessageReceiptListener listener = 
-				new PlainVanillaTcpMessageListener(System.out);
+				new PlainVanillaTcpMessageListener();
 		
 		tcpMessenger.registerListener(listener);
 		tcpMessenger.initialize();

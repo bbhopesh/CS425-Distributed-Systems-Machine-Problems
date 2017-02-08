@@ -1,6 +1,5 @@
-package edu.illinois.uiuc.sp17.cs425.team4.component.tcpimpl;
+package edu.illinois.uiuc.sp17.cs425.team4.POC;
 
-import java.io.PrintStream;
 import org.apache.commons.lang3.tuple.Pair;
 
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageReceiptListener;
@@ -18,18 +17,6 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.TextMessage;
  * @param <T> type to convert incoming byte[] to.
  */
 public class PlainVanillaTcpMessageListener implements MessageReceiptListener {
-	/** Print stream to which message should be displayed. */
-	private final PrintStream printStream;
-	
-	/**
-	 * Create an instance.
-	 * @param codec Codec to be used.
-	 * @param printStream Print stream to print messages to.
-	 */
-	public PlainVanillaTcpMessageListener(PrintStream printStream) {
-		this.printStream = printStream;
-	}
-	
 	
 	
 	/*@Override
@@ -55,7 +42,6 @@ public class PlainVanillaTcpMessageListener implements MessageReceiptListener {
 
 	@Override
 	public Message messageReceived(Pair<Process, Message> sourceAndMsg) {
-		Process x = sourceAndMsg.getLeft();
 		TextMessage txt = (TextMessage) sourceAndMsg.getRight();
 		System.out.println(txt);
 		return null;
