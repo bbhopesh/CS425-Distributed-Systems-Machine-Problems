@@ -1,4 +1,4 @@
-package edu.illinois.uiuc.sp17.cs425.team4;
+package edu.illinois.uiuc.sp17.cs425.team4.POC;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -24,7 +24,7 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.Model;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import edu.illinois.uiuc.sp17.cs425.team4.model.impl.ModelImpl;
 
-public class A {
+public class Test {
 	
 	private static final String MY_NAME = "A";
 	private static Set<Process> groupMembers = new HashSet<Process>();
@@ -57,7 +57,7 @@ public class A {
 		
 		groupMembers.addAll(Arrays.asList(
 				m1
-				,m2
+				//,m2
 				));
 	}
 	

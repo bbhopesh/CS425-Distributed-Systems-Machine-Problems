@@ -25,8 +25,6 @@ public class TCPMessengerBuilder implements Messenger.Builder {
 	private Integer backlog;
 	/** The local InetAddress the server will bind to. */
 	private InetAddress bindAddr;
-	/** Max size of the cache that keeps open outgoing connections. */
-	private Integer outgoingSocketCacheSize;
 	/** Thread pool that TCP messenger should use to submit new tasks. */
 	private ExecutorService threadPool;
 	/** Message Adaptor. */
@@ -90,22 +88,6 @@ public class TCPMessengerBuilder implements Messenger.Builder {
 		return this;
 	}
 	
-	/**
-	 * Get max size of the cache that keeps open outgoing connections.
-	 * @return max size of cache.
-	 */
-	public Integer getOutgoingSocketCacheSize() {
-		return outgoingSocketCacheSize;
-	}
-	
-	/**
-	 * Set max size of the cache that keeps open outgoing connections.
-	 * @param max size of cache.
-	 */
-	public TCPMessengerBuilder setOutgoingSocketCacheSize(Integer outgoingSocketCacheSize) {
-		this.outgoingSocketCacheSize = outgoingSocketCacheSize;
-		return this;
-	}
 
 	/**
 	 * Get thread pool.

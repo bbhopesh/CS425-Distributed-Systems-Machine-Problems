@@ -1,14 +1,14 @@
-package edu.illinois.uiuc.sp17.cs425.team4;
+package edu.illinois.uiuc.sp17.cs425.team4.POC;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import org.apache.commons.lang3.tuple.Pair;
 
 import edu.illinois.uiuc.sp17.cs425.team4.component.ChatApplication;
 import edu.illinois.uiuc.sp17.cs425.team4.component.GroupManager;
@@ -24,15 +24,20 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.Model;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import edu.illinois.uiuc.sp17.cs425.team4.model.impl.ModelImpl;
 
-public class Test2 {
+public class B {
+	
+	private static final String MY_NAME = "B";
+	private static Set<Process> groupMembers = new HashSet<Process>();
+	private static Process mySelf;
 	
 	public static void main(String[] args) throws IOException {
 		Model model = createModel();
-		Pair<InetAddress, Integer> addr = createAddressAndPort();
-		Process mySelf = createProcess(model, addr);
+		initializeGroupMembers(model);
+		intializeMyself();
 		model.setMyIdentity(mySelf);
-		GroupManager groupManager = createGroupManager(mySelf);
-		Messenger messenger = createTCPMessenger(mySelf, addr.getRight());
+		
+		GroupManager groupManager = createGroupManager();
+		Messenger messenger = createTCPMessenger();
 		Multicast basicMulticast = createBasicMulticast(groupManager, messenger);
 		Multicast reliableMulticast = createReliableMulticast(basicMulticast,groupManager);
 		//ChatApplication app =  new SimpleChatApplication(basicMulticast, model);
@@ -41,32 +46,45 @@ public class Test2 {
 		System.exit(0);
 	}
 	
+	private static void initializeGroupMembers(Model model) throws UnknownHostException {
+		Process m1 = model.createProcess(InetAddress.getByName("localhost"),
+				10005, "A", new UUID(01, 02));
+		
+		Process m2 = model.createProcess(InetAddress.getByName("localhost"),
+				10010, "B", new UUID(03, 04));
+		// If you copy to create more processes, don't forget to change UUID
+		// UUID should be unique for each.
+		
+		groupMembers.addAll(Arrays.asList(
+				m1
+				,m2
+				));
+	}
+	
+	private static void intializeMyself() {
+		for (Process p: groupMembers) {
+			if (p.getDisplayName().equals(MY_NAME)) {
+				mySelf = p;
+			}
+		}
+	}
+	
 	private static Model createModel() {
 		return new ModelImpl();	
 	}
 	
-	private static Pair<InetAddress, Integer> createAddressAndPort() throws UnknownHostException {
-		return Pair.of(InetAddress.getLocalHost(), 10010);
-	}
-	private static Process createProcess(Model model, Pair<InetAddress, Integer> addr) {
-		return model.createProcess(addr.getLeft(), addr.getRight(), "B");
+	public static GroupManager createGroupManager() {
+		return new StaticGroupManagerImpl(mySelf, groupMembers);
 	}
 	
-	private static Process createPeer(Model model, int port) throws UnknownHostException {
-		return model.createProcess(InetAddress.getLocalHost(), port, "A");
-	}
-	
-	public static GroupManager createGroupManager(Process mySelf) {
-		return new StaticGroupManagerImpl(mySelf, 
-				new HashSet<Process>(Arrays.asList(mySelf)));
-	}
-	
-	private static Messenger createTCPMessenger(Process mySelf, int port) throws IOException {
+	private static Messenger createTCPMessenger() throws IOException {
 		ExecutorService threadPool = Executors.newFixedThreadPool(10);
 		TCPMessengerBuilder builder = new TCPMessengerBuilder()
 									.setThreadPool(threadPool)
-									.setPort(port)
+									.setBindAddr(mySelf.getInetAddress())
+									.setPort(mySelf.getPort())
 									.setMyIdentity(mySelf)
+									.setBacklog(50)
 									.setMessageAdaptor(new TCPMessageAdaptor());
 		return builder.build();
 	}

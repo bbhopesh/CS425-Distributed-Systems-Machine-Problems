@@ -1,4 +1,4 @@
-package edu.illinois.uiuc.sp17.cs425.team4;
+package edu.illinois.uiuc.sp17.cs425.team4.POC;
 
 import java.io.IOException;
 import java.net.InetAddress;

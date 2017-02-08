@@ -2,9 +2,6 @@ package edu.illinois.uiuc.sp17.cs425.team4.component.tcpimpl;
 
 import java.io.IOException;
 import java.net.Socket;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -35,8 +32,6 @@ import net.jcip.annotations.ThreadSafe;
 @ThreadSafe
 final class TCPMessenger implements Messenger {
 	private final TCPServer tcpServer;
-	/** Cache to maintain open outgoing connections. */
-	private final Map<Process, Socket> cache;
 	/** Executor service to submit new threads to. */
 	private final ExecutorService threadPool;
 	/** Message Adaptor. */
@@ -66,9 +61,6 @@ final class TCPMessenger implements Messenger {
 		this.messageAdaptor = (MessageAdaptor) checkForNull(builder.getMessageAdaptor(), "Message Adaptor cannot be null");
 		// Get Identity.
 		this.myIdentity = (Process) checkForNull(builder.getMyIdentity(), "Identity cannot be null");
-		// Default to 10.
-		int maxCacheSize = builder.getOutgoingSocketCacheSize() == null ? 10 : builder.getOutgoingSocketCacheSize();
-		this.cache = createCache(maxCacheSize);
 	}
 	
 	
@@ -94,7 +86,8 @@ final class TCPMessenger implements Messenger {
 		}
 		try {
 			// Open socket with destination.
-			Socket s = getSocket(dstnAndMsg.getLeft());
+			Process p = dstnAndMsg.getLeft();
+			Socket s = new Socket(p.getInetAddress(), p.getPort());
 			// Send destination the message and tell them who sent it.
 			this.messageAdaptor.write(s, Pair.of(this.myIdentity, dstnAndMsg.getRight()));
 			// Read response back and ignore source of this msg as source of the response msg will be destionation of original msg.
@@ -106,18 +99,6 @@ final class TCPMessenger implements Messenger {
 		}
 	}
 	
-	/*private synchronized Socket getSocket(Process p) throws IOException {
-		Socket s = this.cache.get(p);
-		if (s == null) {
-			s = new Socket(p.getInetAddress(), p.getPort());
-			this.cache.put(p, s);
-		}
-		return s;
-	}*/
-	
-	private synchronized Socket getSocket(Process p) throws IOException {
-		return new Socket(p.getInetAddress(), p.getPort());
-	}
 
 	@Override
 	public synchronized boolean registerListener(MessageReceiptListener listener) {
@@ -168,24 +149,6 @@ final class TCPMessenger implements Messenger {
 			}
 		}
 	}
-	/**
-	 * Creates cache to store open connections.
-	 * @param maxCacheSize Max cache size.
-	 * @return cache.
-	 */
-	private Map<Process, Socket> createCache(final int maxCacheSize) {
-		// LRU cache.
-		Map<Process, Socket> cache = new LinkedHashMap<Process, Socket>(maxCacheSize, 0.75f, true) {
-			private static final long serialVersionUID = 1L;
-			
-			protected boolean removeEldestEntry(Map.Entry<Process, Socket> eldest) {
-				return size() > maxCacheSize;
-			}
-		};
-		return Collections.synchronizedMap(cache);
-	}
-
-	
 
 	/**
 	 * Check if the given object is null.
