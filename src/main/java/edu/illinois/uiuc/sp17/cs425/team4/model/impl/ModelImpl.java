@@ -93,6 +93,14 @@ public class ModelImpl implements Model {
 		}
 		this.myIdentity = myIdentity;
 	}
+
+	@Override
+	public boolean containsSameProcess(Process proc){
+		if(this.myIdentity == null) {
+			throw new IllegalStateException("MyIdentity must be set first by calling setMyIdentity.");
+		}
+		return myIdentity.equals(proc);
+	}
 	
 	private void checkMyIdentity() {
 		if(this.myIdentity == null) {

@@ -88,4 +88,11 @@ public interface Model {
 	 * @param myIdentity process that should be stamped on various model objects as "this" process.
 	 */
 	public void setMyIdentity(Process myIdentity);
+
+	/**
+	 * Check if this model contains the input process
+	 * @param proc the input process to check against this.myIdentity
+	 * @return boolean
+	 */
+	public boolean containsSameProcess(Process proc);
 }

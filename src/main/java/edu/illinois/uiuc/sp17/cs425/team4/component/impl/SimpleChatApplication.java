@@ -45,10 +45,20 @@ public class SimpleChatApplication implements ChatApplication {
 		Process sender = message.getOriginatingSource();
 		StringBuilder sb = new StringBuilder();
 		
-		sb.append(sender.getDisplayName())
-			.append(": ")
-			.append(message.getText());
-		this.output.println(sb.toString());
+		if(model.containsSameProcess(sender)){
+			sb.append(sender.getDisplayName())
+				.append(": ")
+				.append(message.getText());
+			this.output.println(sb.toString());	
+		}else{
+			sb.append("\b\b\b")
+				.append(sender.getDisplayName())
+				.append(": ")
+				.append(message.getText());
+			this.output.println(sb.toString());
+			this.output.print(PROMPT);
+		}
+		
 	}
 
 	@Override
