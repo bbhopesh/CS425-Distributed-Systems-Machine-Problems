@@ -21,6 +21,7 @@ This project implements a chat system that supports **totally ordered multicast*
 
 # Authors
 Bhopesh Bassi: bbassi2@illinois.edu
+
 Zhongshen Zeng: zzeng9@illinois.edu
 
 
