@@ -1,7 +1,7 @@
-#Synopsis
+# H1 Synopsis
 This project implements a chat system that supports **totally ordered multicast** and **failure detection**. This chat system allows multiple clients and each client implements two functions: take messages as input and display messages from all participants in the chat room (including messages from oneself). The messages is displayed in a total ordering, i.e., all clients will see the same messages displayed in the same order. Any client in the chat room can leave or fail at any point of time and other clients in the chat room is able to detect these failures.
 
-#Building
+# H1 Building
 1. Git clone this repo into a local directory.
 
 2. Modify the method initializeGroupMembers of class CP1 of package edu.illinois.uiuc.sp17.cs425.team4.MP1
@@ -19,7 +19,7 @@ This project implements a chat system that supports **totally ordered multicast*
 8. After the deployment on **every** VM, a chat can now start!
 
 
-#Authors
+# H1 Authors
 Bhopesh Bassi: bbassi2@illinois.edu
 Zhongshen Zeng: zzeng9@illinois.edu
 
