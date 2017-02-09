@@ -13,56 +13,63 @@ public interface Model {
 	 * Create No Op message with random unique id.
 	 * @return No Op message.
 	 */
-	public Message createNoOpMessage();
+	public Message createNoOpMessage(Process originatingProcess);
 	
 	/**
 	 * Create No Op message with provided unique id.
+	 * @param originatingProcess Originating process for the message.
 	 * @param uId unique id of the message to be created.
 	 * @return No Op message
 	 */
-	public Message createNoOpMessage(UUID uId);
+	public Message createNoOpMessage(Process originatingProcess, UUID uId);
 	
 	/**
 	 * Create text message with random unique id.
 	 * @param text Text of the message.
+	 * @param originatingProcess Originating process for the message.
 	 * @return Text message
 	 */
-	public TextMessage createTextMessage(String text);
+	public TextMessage createTextMessage(String text, Process originatingProcess);
 	
 	/**
 	 * Create text message with provided unique id.
 	 * @param text Text of the message.
+	 * @param originatingProcess Originating process for the message.
 	 * @param uId unique id of the message to be created.
 	 * @return Text message
 	 */
-	public TextMessage createTextMessage(String text, UUID uId);
+	public TextMessage createTextMessage(String text, Process originatingProcess, UUID uId);
 	
 	/**
 	 * Create Process joined message with random unique id.
+	 * @param originatingProcess Originating process for the message.
 	 * @return Process joined message.
 	 */
-	public Message createProcessJoinedMessage();
+	public Message createProcessJoinedMessage(Process originatingProcess);
 	
 	/**
 	 * Create Process joined message with provided unique id.
+	 * @param originatingProcess Originating process for the message.
 	 * @param uId unique id of the message to be created.
 	 * @return Process joined message.
 	 */
-	public Message createProcessJoinedMessage(UUID uId);
+	public Message createProcessJoinedMessage(Process originatingProcess, UUID uId);
 	
 	/**
 	 * Create Process left message with random unique id.
+	 * @param originatingProcess Originating process for the message.
 	 * @param uId unique id of the message to be created.
 	 * @return Process left message.
 	 */
-	public Message createProcessLeftMessage();
+	public Message createProcessLeftMessage(Process originatingProcess);
 	
 	/**
 	 * Create Process left message with provided unique id.
+	 * @param originatingProcess Originating process for the message.
 	 * @param uId unique id of the message to be created.
 	 * @return Process left message.
 	 */
-	public Message createProcessLeftMessage(UUID uId);
+	public Message createProcessLeftMessage(Process originatingProcess, UUID uId);
 	
 	/**
 	 * Create process with provided unique id.
@@ -82,17 +89,5 @@ public interface Model {
 	 * @return Process.
 	 */
 	public Process createProcess(InetAddress inetAddress, int port, String displayName, UUID uId);
-	
-	/** 
-	 * Set which process should be stamped on various model objects as "this" process.
-	 * @param myIdentity process that should be stamped on various model objects as "this" process.
-	 */
-	public void setMyIdentity(Process myIdentity);
 
-	/**
-	 * Check if this model contains the input process
-	 * @param proc the input process to check against this.myIdentity
-	 * @return boolean
-	 */
-	public boolean containsSameProcess(Process proc);
 }

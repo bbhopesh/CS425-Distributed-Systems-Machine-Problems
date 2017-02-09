@@ -17,63 +17,45 @@ import net.jcip.annotations.NotThreadSafe;
  */
 @NotThreadSafe
 public class ModelImpl implements Model {
-	/** This process. */
-	private Process myIdentity;
-	
-	public ModelImpl(Process myIdentity) {
-		this.myIdentity = myIdentity;
-	}
-	
-	public ModelImpl() {
-		
-	}
 	
 	@Override
-	public Message createNoOpMessage() {
-		checkMyIdentity();
-		return new NoOpMessageImpl(this.myIdentity);
+	public Message createNoOpMessage(Process originatingProcess) {
+		return new NoOpMessageImpl(originatingProcess);
 	}
 
 	@Override
-	public Message createNoOpMessage(UUID uId) {
-		checkMyIdentity();
-		return new NoOpMessageImpl(this.myIdentity, uId);
+	public Message createNoOpMessage(Process originatingProcess, UUID uId) {
+		return new NoOpMessageImpl(originatingProcess, uId);
 	}
 
 	@Override
-	public TextMessage createTextMessage(String text) {
-		checkMyIdentity();
-		return new TextMessageImpl(this.myIdentity, text);
+	public TextMessage createTextMessage(String text, Process originatingProcess) {
+		return new TextMessageImpl(originatingProcess, text);
 	}
 
 	@Override
-	public TextMessage createTextMessage(String text, UUID uId) {
-		checkMyIdentity();
-		return new TextMessageImpl(this.myIdentity, text, uId);
+	public TextMessage createTextMessage(String text, Process originatingProcess, UUID uId) {
+		return new TextMessageImpl(originatingProcess, text, uId);
 	}
 
 	@Override
-	public Message createProcessJoinedMessage() {
-		checkMyIdentity();
-		return new ProcessJoinedMessageImpl(this.myIdentity);
+	public Message createProcessJoinedMessage(Process originatingProcess) {
+		return new ProcessJoinedMessageImpl(originatingProcess);
 	}
 
 	@Override
-	public Message createProcessJoinedMessage(UUID uId) {
-		checkMyIdentity();
-		return new ProcessJoinedMessageImpl(this.myIdentity, uId);
+	public Message createProcessJoinedMessage(Process originatingProcess, UUID uId) {
+		return new ProcessJoinedMessageImpl(originatingProcess, uId);
 	}
 
 	@Override
-	public Message createProcessLeftMessage() {
-		checkMyIdentity();
-		return new ProcessLeftMessageImpl(this.myIdentity);
+	public Message createProcessLeftMessage(Process originatingProcess) {
+		return new ProcessLeftMessageImpl(originatingProcess);
 	}
 
 	@Override
-	public Message createProcessLeftMessage(UUID uId) {
-		checkMyIdentity();
-		return new ProcessLeftMessageImpl(this.myIdentity, uId);
+	public Message createProcessLeftMessage(Process originatingProcess, UUID uId) {
+		return new ProcessLeftMessageImpl(originatingProcess, uId);
 	}
 
 	@Override
@@ -84,28 +66,6 @@ public class ModelImpl implements Model {
 	@Override
 	public Process createProcess(InetAddress inetAddress, int port, String displayName, UUID uId) {
 		return new ProcessImpl(inetAddress, port, displayName, uId);
-	}
-
-	@Override
-	public void setMyIdentity(Process myIdentity) {
-		if(this.myIdentity != null) {
-			throw new IllegalStateException("MyIdentity cannot be set multiple times.");
-		}
-		this.myIdentity = myIdentity;
-	}
-
-	@Override
-	public boolean containsSameProcess(Process proc){
-		if(this.myIdentity == null) {
-			throw new IllegalStateException("MyIdentity must be set first by calling setMyIdentity.");
-		}
-		return myIdentity.equals(proc);
-	}
-	
-	private void checkMyIdentity() {
-		if(this.myIdentity == null) {
-			throw new IllegalStateException("MyIdentity must be set first by calling setMyIdentity.");
-		}
 	}
 
 }

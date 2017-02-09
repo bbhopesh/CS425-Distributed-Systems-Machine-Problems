@@ -39,7 +39,7 @@ public class BasicMulticast implements Multicast, MessageReceiptListener, GroupC
 		this.mesenger = mesenger;
 		this.mesenger.registerListener(this);
 		this.mesenger.initialize();
-		this.model = new ModelImpl(this.groupManager.getMyIdentity());
+		this.model = new ModelImpl();
 	}
 	
 	@Override
@@ -75,13 +75,13 @@ public class BasicMulticast implements Multicast, MessageReceiptListener, GroupC
 	@Override
 	public void processJoined(Process j) {
 		this.registeredApplication.deliver(
-				Pair.of(j, model.createProcessJoinedMessage()));
+				Pair.of(j, model.createProcessJoinedMessage(this.groupManager.getMyIdentity())));
 	}
 
 	@Override
 	public void processLeft(Process l) {
 		this.registeredApplication.deliver(
-				Pair.of(l, model.createProcessLeftMessage()));
+				Pair.of(l, model.createProcessLeftMessage(this.groupManager.getMyIdentity())));
 		
 	}
 

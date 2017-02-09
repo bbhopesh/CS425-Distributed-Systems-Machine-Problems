@@ -34,14 +34,13 @@ public class B {
 		Model model = createModel();
 		initializeGroupMembers(model);
 		intializeMyself();
-		model.setMyIdentity(mySelf);
 		
 		GroupManager groupManager = createGroupManager();
 		Messenger messenger = createTCPMessenger();
 		Multicast basicMulticast = createBasicMulticast(groupManager, messenger);
 		Multicast reliableMulticast = createReliableMulticast(basicMulticast,groupManager);
 		//ChatApplication app =  new SimpleChatApplication(basicMulticast, model);
-		ChatApplication app =  new SimpleChatApplication(reliableMulticast, model);
+		ChatApplication app =  new SimpleChatApplication(reliableMulticast, mySelf);
 		app.startChat();
 		System.exit(0);
 	}
