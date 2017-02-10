@@ -4,19 +4,36 @@ This project implements a chat system that supports **totally ordered multicast*
 # Building
 1. Git clone this repo into a local directory.
 
-2. Modify the method initializeGroupMembers of class CP1 of package edu.illinois.uiuc.sp17.cs425.team4.MP1
+2. cd to project home directory and run ./gradlew clean build
 
-3. In the method initializeGroupMembers, initialize as many process as you want. Each process corresponds to a single client. The constructor of each process takes *IP address, port number, user name, UUID* as input. Note that for every IP address, input the VMs' address that you are going to deploy on.
+3. A build folder will be then created in the home directory. cd to /build/distribution. Use scp to transfer the CS425-MP1.tar file into the VMs you wish to be deployed on 
 
-4. cd to project home directory and run ./gradlew clean build
+4. ssh into the virtual machines and untar the CS425-MP1.tar files. A lib folder will be created
 
-5. A build folder will be then created in the home directory. cd to /build/distribution. Use scp to transfer the CS425-MP1.tar file into the VMs you defined in step 3
+5. cd to /lib and run java -cp "*"  edu.illinois.uiuc.sp17.cs425.team4.MP1.CP1 -peerCount <clientNumber> -myName <username> -outputFile <file.txt>. 
 
-6. ssh into **every** virtual machine and untar the CS425-MP1.tar file. A lib folder will be created
+Note : 
 
-7. cd to /lib and run java -cp "*"  edu.illinois.uiuc.sp17.cs425.team4.MP1.CP1 <name>. Note that <name> must be the user name that you bind with this IP address in step 3 
+Replace <clientNumber> with the number of clients you wish to add  
 
-8. After the deployment on **every** VM, a chat can now start!
+Replace <username> with A-J, each corresponding to a VM from g04-01 to g04-10
+
+**The flag -outputFile <file.txt> is optional, if you do not input this option, the message will be print into the terminal.** If you input this option, all the message will be written into a text file you specified. Replace <file.txt> with a text file name 
+
+6. If you wish to see the messages in real time under a typical chat app user interface, replace the following commands with step 5. Otherwise, go to step 7
+
+	I.type tmux to start a new tmux session
+
+	II. run java -cp "*"  edu.illinois.uiuc.sp17.cs425.team4.MP1.CP1 -peerCount <clientNumber> -myName <username> -outputFile <file.txt>
+
+	III. hit ctrl and b at the same time, followed by a double quotation makr ". This will split the terminal horizontally for you
+
+	IV. type tmux swap-pane -U to move the new terminal up
+
+	V. type tail -f <file.txt>, replace <file.txt> with the file you specified above to display real time chat messages 
+
+7. Repeat step 4-6 on the same number of virtual machines you wish to deploy on and start chatting!
+
 
 
 # Authors
