@@ -10,7 +10,7 @@ This project implements a chat system that supports **totally ordered multicast*
 
 4. ssh into the virtual machines and untar the CS425-MP1.tar files. A lib folder will be created
 
-5. cd to /lib and run java -cp "*"  edu.illinois.uiuc.sp17.cs425.team4.MP1.CP1 -peerCount <clientNumber> -myName <username> -outputFile <file.txt>. Replace <clientNumber> with the number of clients you wish to add and replace <username> with A-J, each corresponding to a VM from g04-01 to g04-10. **The flag -outputFile <file.txt> is optional, if you do not input this option, the message will be print into the terminal**. If you input this option, all the message will be written into a text file you specified. Replace <file.txt> with a text file name 
+5. cd to /lib and run java -cp "*"  edu.illinois.uiuc.sp17.cs425.team4.MP1.CP1 -peerCount <clientNumber> -myName <username> -outputFile <file.txt>. Replace <clientNumber> with the number of clients you wish to add and replace <username> with A-J, each corresponding to a VM from g04-01 to g04-10. __The flag -outputFile <file.txt> is optional, if you do not input this option, the message will be print into the terminal__. If you input this option, all the message will be written into a text file you specified. Replace <file.txt> with a text file name 
 
 6. If you wish to see the messages in real time under a typical chat app user interface, replace the following commands with step 5. Otherwise, go to step 7
 
