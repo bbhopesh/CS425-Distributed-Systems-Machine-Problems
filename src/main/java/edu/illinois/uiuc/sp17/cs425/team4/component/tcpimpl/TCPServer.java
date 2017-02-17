@@ -16,6 +16,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageAdaptor;
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageReceiptListener;
+import edu.illinois.uiuc.sp17.cs425.team4.component.ResponseWriter;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import net.jcip.annotations.NotThreadSafe;
@@ -88,17 +89,17 @@ final class TCPServer implements Callable<Void> {
 				checkFailures(pendingMessages);
 			} 
 		} catch (IOException e) {
-			e.printStackTrace();
+			//e.printStackTrace();
 			throw new ContextedRuntimeException(e);
 		} catch (InterruptedException e) {
-			e.printStackTrace();
+			//e.printStackTrace();
 			Thread.currentThread().interrupt(); // so that code up stack trace is aware of interrupt.
 			throw new ContextedRuntimeException(e);
 		} catch (ExecutionException e) {
-			e.printStackTrace();
+			//e.printStackTrace();
 			throw new ContextedRuntimeException(e);
 		} catch (Exception e) {
-			e.printStackTrace();
+			//e.printStackTrace();
 			throw e;
 		}
 
@@ -172,15 +173,15 @@ final class TCPServer implements Callable<Void> {
 		private final Socket tcpIncomingSocket;
 		/** Adaptor. */
 		private final MessageAdaptor messageAdaptor;
-		/** Identity to be stamped on outgoing messages. */
+		/** My identity. */
 		private final Process myIdentity;
 		
 		/**
 		 * Create an instance.
-		 * @param listener Message listener.
-		 * @param receivedFrom Remote address that sent the message.
-		 * @param inputStream Input stream to read the message from.
-		 * @param outputStream Output stream to write the response to.
+		 * @param listener Listener wrapped by this callable.
+		 * @param tcpIncomingSocket Incoming message socket.
+		 * @param messageAdaptor Message adaptor for TCP messages.
+		 * @param myIdentity 
 		 */
 		private MessageListenerWrapper(MessageReceiptListener listener, 
 				Socket tcpIncomingSocket, MessageAdaptor messageAdaptor,
@@ -194,33 +195,23 @@ final class TCPServer implements Callable<Void> {
 		@Override
 		public Void call() {
 			try {
-				// Read the message.
+				// Read the message and it's source.
 				Pair<Process,Message> srcAndMsg = 
 						this.messageAdaptor.read(this.tcpIncomingSocket);
+				ResponseWriter responseWriter = new TCPResponseWriter(this.messageAdaptor, 
+														this.tcpIncomingSocket, this.myIdentity);
 				// Process the message.(Notify listener)
-				Message response = this.listener.messageReceived(srcAndMsg);
-				// Respond.
-				try {
-					if (response != null) {
-						this.messageAdaptor.write(this.tcpIncomingSocket, 
-								Pair.of(this.myIdentity, response));
-					}
-				} catch (Exception e1) {
-					e1.printStackTrace();
-					this.listener.notifyFailure(Pair.of(srcAndMsg, response), e1);
-					throw e1;
-				}
+				this.listener.messageReceived(srcAndMsg, responseWriter);
 			} catch (Exception e1) {
-				e1.printStackTrace();
-				throw e1;
+				// ignore this exception. We cannot do anything about it.
+				// It came from client code and should have been handled by the client.
 			}
 			
 			// Try closing connection.
 			try {
 				this.tcpIncomingSocket.close();
 			} catch (IOException e) {
-				// ignore if error occurs while closing socket, just log and move on.
-				e.printStackTrace();
+				// ignore if error occurs while closing socket,
 			}
 			return null;
 		}

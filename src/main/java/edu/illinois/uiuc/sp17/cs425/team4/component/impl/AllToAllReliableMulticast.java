@@ -1,6 +1,7 @@
 package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
@@ -60,7 +61,7 @@ public class AllToAllReliableMulticast implements Multicast, Application {
 					.equals(message.getOriginatingSource())) {
 				this.basicMulticast.multicast(message);
 			} else {
-				// Do thing because If I was the original sender, multicast originated from this.multicast.
+				// Do nothing because If I was the original sender, multicast originated from this.multicast.
 			}
 			// R-deliver to application.
 			this.registeredApplication.deliver(Pair.of(sender, message));
@@ -68,11 +69,11 @@ public class AllToAllReliableMulticast implements Multicast, Application {
 	}
 
 	@Override
-	public void multicast(Message m) {
+	public List<Pair<Process, Exception>> multicast(Message m) {
 		// Delegate.
 		// This method is same as base multicast, reliability comes from the fact
 		// that everyone will forward to everyone upon delivery.
-		this.basicMulticast.multicast(m); // B-Multicast.
+		return this.basicMulticast.multicast(m); // B-Multicast.
 	}
 
 	@Override

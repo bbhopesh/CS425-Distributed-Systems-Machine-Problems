@@ -99,6 +99,7 @@ public class SimpleChatApplication implements ChatApplication {
 			System.out.print(PROMPT);
 			String nextMsg = input.nextLine();
 			if(shouldStop(nextMsg)) break;
+			// Multicast gives the failed messages list back but can't do anything with it, so ignore.
 			this.multicast.multicast(toTextMessage(nextMsg));
 		}
 		System.out.println(EXIT_MSG);

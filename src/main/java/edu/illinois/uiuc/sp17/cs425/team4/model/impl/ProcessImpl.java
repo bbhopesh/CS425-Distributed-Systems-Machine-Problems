@@ -95,4 +95,11 @@ class ProcessImpl implements Process, Serializable {
 		return true;
 	}
 
+	@Override
+	public String toString() {
+		return "Process [Address=" + this.inetAddress.getHostName() + ":" + port + ", displayName=" + displayName + "]";
+	}
+	
+	
+
 }

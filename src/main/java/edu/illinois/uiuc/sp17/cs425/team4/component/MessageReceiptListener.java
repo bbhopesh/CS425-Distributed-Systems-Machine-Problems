@@ -15,9 +15,9 @@ public interface MessageReceiptListener {
 	/**
 	 * Call this function when a message is received.
 	 * @param sourceAndMsg Message and it's source.
-	 * @return the response that should be sent to the incoming message.
+	 * @param responsWriter write response of the received message to this object.
 	 */
-	public Message messageReceived(Pair<Process,Message>  sourceAndMsg);
+	public void messageReceived(Pair<Process,Message>  sourceAndMsg, ResponseWriter responseWriter);
 	
 	/**
 	 * This method is intended to be provided to listener in case the delivery of a response fails.

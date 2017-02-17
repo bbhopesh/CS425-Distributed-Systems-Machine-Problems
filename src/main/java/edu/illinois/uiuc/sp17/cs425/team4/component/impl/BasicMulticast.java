@@ -1,6 +1,9 @@
 package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
 
 
+import java.util.LinkedList;
+import java.util.List;
+
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -10,6 +13,7 @@ import edu.illinois.uiuc.sp17.cs425.team4.component.GroupManager;
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageReceiptListener;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Messenger;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Multicast;
+import edu.illinois.uiuc.sp17.cs425.team4.component.ResponseWriter;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Model;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
@@ -43,14 +47,16 @@ public class BasicMulticast implements Multicast, MessageReceiptListener, GroupC
 	}
 	
 	@Override
-	public Message messageReceived(Pair<Process, Message> sourceAndMsg) {
+	public void messageReceived(Pair<Process, Message> sourceAndMsg, ResponseWriter responseWriter) {
 		this.registeredApplication.deliver(sourceAndMsg);
-		// Just receives message, doesn't respond back.
-		return null;
+		// Don't have anything to respond. Just close the responsWriter.
+		responseWriter.close();
 	}
 
 	@Override
-	public void multicast(Message m) {
+	public List<Pair<Process, Exception>> multicast(Message m) {
+		List<Pair<Process, Exception>> failedMessages = 
+				new LinkedList<Pair<Process, Exception>>();
 		// TODO Semantics of what happens when group changes while iterating are not clear.
 		// We might have to change code according to requirements there.
 		// Because it doesn't matter for MP1, leaving it as it is for now.
@@ -59,8 +65,13 @@ public class BasicMulticast implements Multicast, MessageReceiptListener, GroupC
 			// sending message to group members in a loop.
 			// TODO Might want to consider sending asynchronously on different threads...
 			// ...Just an idea, didn't give it much thought yet.
-			this.mesenger.send(Pair.of(p, m));
+			try {
+				this.mesenger.send(Pair.of(p, m));
+			} catch (ContextedRuntimeException e) {
+				failedMessages.add(Pair.of(p, e));
+			}
 		}
+		return failedMessages;
 	}
 
 	@Override

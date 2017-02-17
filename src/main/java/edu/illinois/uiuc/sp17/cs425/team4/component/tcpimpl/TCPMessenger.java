@@ -59,7 +59,6 @@ final class TCPMessenger implements Messenger {
 				"Thread pool cannot be null.");
 		// Get adaptor.
 		this.messageAdaptor = (MessageAdaptor) checkForNull(builder.getMessageAdaptor(), "Message Adaptor cannot be null");
-		// Get Identity.
 		this.myIdentity = (Process) checkForNull(builder.getMyIdentity(), "Identity cannot be null");
 	}
 	
@@ -90,12 +89,14 @@ final class TCPMessenger implements Messenger {
 			Socket s = new Socket(p.getInetAddress(), p.getPort());
 			// Send destination the message and tell them who sent it.
 			this.messageAdaptor.write(s, Pair.of(this.myIdentity, dstnAndMsg.getRight()));
-			// Read response back and ignore source of this msg as source of the response msg will be destionation of original msg.
+			// Read response back and ignore source of this msg as source of the response msg will be destination of original msg.
 			Pair<Process, Message> srcAndMsg = this.messageAdaptor.read(s);
 			s.close();
 			return srcAndMsg == null ? null: srcAndMsg.getRight();
 		} catch (IOException e) {
-			throw new ContextedRuntimeException(e);
+			throw new ContextedRuntimeException(
+					"Couldn't send message to " + dstnAndMsg.getLeft().toString(),
+					e);
 		}
 	}
 	
