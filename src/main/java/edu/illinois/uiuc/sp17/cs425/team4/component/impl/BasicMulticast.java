@@ -1,8 +1,6 @@
 package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
 
 
-import java.util.LinkedList;
-import java.util.List;
 
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.apache.commons.lang3.tuple.Pair;
@@ -54,9 +52,7 @@ public class BasicMulticast implements Multicast, MessageReceiptListener, GroupC
 	}
 
 	@Override
-	public List<Pair<Process, Exception>> multicast(Message m) {
-		List<Pair<Process, Exception>> failedMessages = 
-				new LinkedList<Pair<Process, Exception>>();
+	public void multicast(Message m) {
 		// TODO Semantics of what happens when group changes while iterating are not clear.
 		// We might have to change code according to requirements there.
 		// Because it doesn't matter for MP1, leaving it as it is for now.
@@ -68,10 +64,9 @@ public class BasicMulticast implements Multicast, MessageReceiptListener, GroupC
 			try {
 				this.mesenger.send(Pair.of(p, m));
 			} catch (ContextedRuntimeException e) {
-				failedMessages.add(Pair.of(p, e));
+				// ignore.
 			}
 		}
-		return failedMessages;
 	}
 
 	@Override
