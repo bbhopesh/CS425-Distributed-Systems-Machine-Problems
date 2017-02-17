@@ -80,7 +80,7 @@ final class TCPMessenger implements Messenger {
 	@Override
 	public Message send(Pair<Process, Message> dstnAndMsg) {
 		synchronized(this) {
-			checkInitialization();
+			//checkInitialization(); // Initializations tarts server, we don't have to check for it here.
 			checkForFailure();
 		}
 		try {

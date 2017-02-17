@@ -22,7 +22,9 @@ public interface Message extends Serializable {
 		NO_OP, // No Op message(just a placeholder)
 		JOINED, // Indicating that a process has joined the system.
 		LEFT, // Indicating that a process has left.
-		TEXT  // Text message.
+		TEXT,  // Text message.
+		PING, // Ping message.
+		ACK // Acknowledge message.
 	}
 	
 	/** Get message type. */

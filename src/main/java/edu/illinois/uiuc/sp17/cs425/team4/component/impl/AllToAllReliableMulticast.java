@@ -47,9 +47,9 @@ public class AllToAllReliableMulticast implements Multicast, Application {
 	public Message deliver(Pair<Process, Message> incomingMessage) {
 		// Algorithm in this method is copy of Fig 15.9 of Coulouris book.
 		
+		// B-Deliver.
 		// Got message from the underlying basic multicast.
 		// Forward to everyone so that the protocol behaves reliably.
-		// B-Deliver.
 		Process sender = incomingMessage.getLeft();
 		Message message = incomingMessage.getRight();
 		if(!this.receivedMessages.contains(message)) {
