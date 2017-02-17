@@ -43,12 +43,6 @@ public class PlainVanillaTcpMessageListener implements MessageReceiptListener {
 
 
 	@Override
-	public void notifyFailure(Pair<Pair<Process, Message>, Message> failedMsg, Exception exception) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
 	public void messageReceived(Pair<Process, Message> sourceAndMsg, ResponseWriter responseWriter) {
 		// TODO Auto-generated method stub
 		TextMessage txt = (TextMessage) sourceAndMsg.getRight();

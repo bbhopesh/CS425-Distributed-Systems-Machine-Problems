@@ -18,20 +18,4 @@ public interface MessageReceiptListener {
 	 * @param responsWriter write response of the received message to this object.
 	 */
 	public void messageReceived(Pair<Process,Message>  sourceAndMsg, ResponseWriter responseWriter);
-	
-	/**
-	 * This method is intended to be provided to listener in case the delivery of a response fails.
-	 * e.g. Let's say, a message was received and messageReceived(Pair<Process,Message>  sourceAndMsg)
-	 * function was called on the listener. Listener responded to this call with a message.
-	 * Now the listener intended to send this response back to the process who had
-	 * sent the original Pair<Process,Message> but somehow there was an failure.
-	 * This method is to inform of that failure.
-	 * As listener is designed to be called asynchronously, I don't know of a better way
-	 * to inform this failure.
-	 * In all the known implementations, we are not using this feature however.
-	 * @param failedMsg Failed message.
-	 * @param exception The failure that occured.
-	 */
-	public void notifyFailure(Pair<Pair<Process,Message>, Message> failedMsg, Exception exception);
-	
 }

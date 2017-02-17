@@ -63,7 +63,7 @@ public class SimpleChatApplication implements ChatApplication {
 	}
 	
 	@Override
-	public void deliver(Pair<Process, Message> incomingMessage) {
+	public Message deliver(Pair<Process, Message> incomingMessage) {
 		TextMessage message = (TextMessage) incomingMessage.getRight();
 		// We don't care about which peer forwarded the message to us.
 		// We care about whose message is this.
@@ -75,6 +75,8 @@ public class SimpleChatApplication implements ChatApplication {
 		.append(message.getText());
 		this.output.println(sb.toString());
 		
+		// Nothing to respond.
+		return null;
 		/*if(model.containsSameProcess(sender)){
 			sb.append(sender.getDisplayName())
 				.append(": ")

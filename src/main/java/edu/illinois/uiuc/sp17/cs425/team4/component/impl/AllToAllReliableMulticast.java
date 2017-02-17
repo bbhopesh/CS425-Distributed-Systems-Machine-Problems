@@ -44,7 +44,7 @@ public class AllToAllReliableMulticast implements Multicast, Application {
 	}
 	
 	@Override
-	public void deliver(Pair<Process, Message> incomingMessage) {
+	public Message deliver(Pair<Process, Message> incomingMessage) {
 		// Algorithm in this method is copy of Fig 15.9 of Coulouris book.
 		
 		// Got message from the underlying basic multicast.
@@ -64,8 +64,9 @@ public class AllToAllReliableMulticast implements Multicast, Application {
 				// Do nothing because If I was the original sender, multicast originated from this.multicast.
 			}
 			// R-deliver to application.
-			this.registeredApplication.deliver(Pair.of(sender, message));
+			return this.registeredApplication.deliver(Pair.of(sender, message));
 		}
+		return null;
 	}
 
 	@Override

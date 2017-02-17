@@ -48,8 +48,8 @@ public class BasicMulticast implements Multicast, MessageReceiptListener, GroupC
 	
 	@Override
 	public void messageReceived(Pair<Process, Message> sourceAndMsg, ResponseWriter responseWriter) {
-		this.registeredApplication.deliver(sourceAndMsg);
-		// Don't have anything to respond. Just close the responsWriter.
+		Message response = this.registeredApplication.deliver(sourceAndMsg);
+		responseWriter.writeResponse(response);
 		responseWriter.close();
 	}
 
@@ -85,20 +85,16 @@ public class BasicMulticast implements Multicast, MessageReceiptListener, GroupC
 
 	@Override
 	public void processJoined(Process j) {
+		// Ignores the message replied by application on receive of a process joined message.
 		this.registeredApplication.deliver(
 				Pair.of(j, model.createProcessJoinedMessage(this.groupManager.getMyIdentity())));
 	}
 
 	@Override
 	public void processLeft(Process l) {
+		// Ignores the message replied by application on receive of a process left message.
 		this.registeredApplication.deliver(
 				Pair.of(l, model.createProcessLeftMessage(this.groupManager.getMyIdentity())));
 		
 	}
-
-	@Override
-	public void notifyFailure(Pair<Pair<Process, Message>, Message> failedMsg, Exception exception) {
-		// No Op
-	}
-
 }
