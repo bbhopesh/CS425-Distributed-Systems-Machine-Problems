@@ -9,7 +9,7 @@ import java.util.concurrent.Executors;
 
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import edu.illinois.uiuc.sp17.cs425.team4.model.impl.ModelImpl;
-import edu.illinois.uiuc.sp17.cs425.team4.component.MessageReceiptListener;
+import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListener;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Messenger;
 import edu.illinois.uiuc.sp17.cs425.team4.component.tcpimpl.TCPMessageAdaptor;
 import edu.illinois.uiuc.sp17.cs425.team4.component.tcpimpl.TCPMessengerBuilder;
@@ -26,7 +26,7 @@ public class Main {
 									.setMyIdentity(getProcess())
 									.setMessageAdaptor(new TCPMessageAdaptor())
 									.build();
-		MessageReceiptListener listener = 
+		MessageListener listener = 
 				new PlainVanillaTcpMessageListener();
 		
 		tcpMessenger.registerListener(listener);

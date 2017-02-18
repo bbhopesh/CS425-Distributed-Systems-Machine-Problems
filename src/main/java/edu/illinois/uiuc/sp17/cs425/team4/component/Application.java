@@ -15,5 +15,5 @@ public interface Application {
 	 * Deliver a message to this application.
 	 * @param incomingMessage incoming message and it's source.
 	 */
-	public Message deliver(Pair<Process, Message> incomingMessage);
+	public void deliver(Pair<Process, Message> incomingMessage);
 }

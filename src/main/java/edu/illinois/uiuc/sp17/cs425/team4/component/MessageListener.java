@@ -10,7 +10,7 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
  * 
  * @author bbassi2
  */
-public interface MessageReceiptListener {
+public interface MessageListener {
 	
 	/**
 	 * Call this function when a message is received.

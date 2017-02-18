@@ -9,7 +9,7 @@ import edu.illinois.uiuc.sp17.cs425.team4.component.Application;
 import edu.illinois.uiuc.sp17.cs425.team4.component.GroupChangeListener;
 import edu.illinois.uiuc.sp17.cs425.team4.component.GroupManager;
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListenerIdentifier;
-import edu.illinois.uiuc.sp17.cs425.team4.component.MessageReceiptListener;
+import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListener;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Messenger;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Multicast;
 import edu.illinois.uiuc.sp17.cs425.team4.component.ResponseWriter;
@@ -25,7 +25,7 @@ import net.jcip.annotations.NotThreadSafe;
  * 
  * @author bbassi2
  */
-public class BasicMulticast implements Multicast, MessageReceiptListener, GroupChangeListener {
+public class BasicMulticast implements Multicast, MessageListener, GroupChangeListener {
 	
 	/** Group Manager. Used for staying up to date about group members.*/
 	private final GroupManager groupManager;
@@ -52,8 +52,7 @@ public class BasicMulticast implements Multicast, MessageReceiptListener, GroupC
 	
 	@Override
 	public void messageReceived(Pair<Process, Message> sourceAndMsg, ResponseWriter responseWriter) {
-		Message response = this.registeredApplication.deliver(sourceAndMsg);
-		responseWriter.writeResponse(response);
+		this.registeredApplication.deliver(sourceAndMsg);
 		responseWriter.close();
 	}
 

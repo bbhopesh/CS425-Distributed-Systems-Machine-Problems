@@ -12,7 +12,7 @@ import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.apache.commons.lang3.tuple.Pair;
 
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageAdaptor;
-import edu.illinois.uiuc.sp17.cs425.team4.component.MessageReceiptListener;
+import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListener;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Messenger;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
@@ -42,14 +42,14 @@ final class TCPMessenger implements Messenger {
 	private final Process myIdentity;
 	/** Message Listener. */
 	@GuardedBy("this")
-	private MessageReceiptListener messageReceiptListener;
+	private MessageListener messageReceiptListener;
 	/** Initialized? */
 	@GuardedBy("this")
 	private boolean initialized = false;
 	/** A result bearer for the execution of tcp server. */
 	private Future<Void> tcpServerFut;
 	
-	private List<MessageReceiptListener> messageListeners;
+	private List<MessageListener> messageListeners;
 	
 	/**
 	 * Create an instance.
@@ -64,7 +64,7 @@ final class TCPMessenger implements Messenger {
 		// Get adaptor.
 		this.messageAdaptor = (MessageAdaptor) checkForNull(builder.getMessageAdaptor(), "Message Adaptor cannot be null");
 		this.myIdentity = (Process) checkForNull(builder.getMyIdentity(), "Identity cannot be null");
-		this.messageListeners = new CopyOnWriteArrayList<MessageReceiptListener>();
+		this.messageListeners = new CopyOnWriteArrayList<MessageListener>();
 	}
 	
 	
@@ -104,7 +104,7 @@ final class TCPMessenger implements Messenger {
 	
 
 	@Override
-	public boolean registerListener(MessageReceiptListener listener) {
+	public boolean registerListener(MessageListener listener) {
 		checkForFailure();
 		return this.messageListeners.add(listener);
 	}

@@ -40,7 +40,7 @@ public interface Messenger {
 	 * @param listener register this listener.
 	 * @return true if register successfully false otherwise.
 	 */
-	public boolean registerListener(MessageReceiptListener listener);
+	public boolean registerListener(MessageListener listener);
 	
 	/**
 	 * A builder interface for messenger.

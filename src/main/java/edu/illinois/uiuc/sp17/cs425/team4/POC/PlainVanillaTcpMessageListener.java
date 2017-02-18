@@ -3,7 +3,7 @@ package edu.illinois.uiuc.sp17.cs425.team4.POC;
 import org.apache.commons.lang3.tuple.Pair;
 
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListenerIdentifier;
-import edu.illinois.uiuc.sp17.cs425.team4.component.MessageReceiptListener;
+import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListener;
 import edu.illinois.uiuc.sp17.cs425.team4.component.ResponseWriter;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
@@ -18,7 +18,7 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.TextMessage;
  * 
  * @param <T> type to convert incoming byte[] to.
  */
-public class PlainVanillaTcpMessageListener implements MessageReceiptListener {
+public class PlainVanillaTcpMessageListener implements MessageListener {
 	
 	
 	/*@Override

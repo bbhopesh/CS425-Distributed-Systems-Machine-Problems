@@ -15,7 +15,7 @@ import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.apache.commons.lang3.tuple.Pair;
 
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageAdaptor;
-import edu.illinois.uiuc.sp17.cs425.team4.component.MessageReceiptListener;
+import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListener;
 import edu.illinois.uiuc.sp17.cs425.team4.component.ResponseWriter;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
@@ -32,7 +32,7 @@ import net.jcip.annotations.NotThreadSafe;
 @NotThreadSafe
 final class TCPServer implements Callable<Void> {
 	/** Message listeners. */
-	private List<MessageReceiptListener> messageListeners;
+	private List<MessageListener> messageListeners;
 	/** TCP server. */
 	private final ServerSocket tcpServerSocket;
 	/** Message Adaptor. */
@@ -80,7 +80,7 @@ final class TCPServer implements Callable<Void> {
 				Pair<Process,Message> srcAndMsg = readMessage(connectionSocket);
 				ResponseWriter responseWriter = createResponseWriter(connectionSocket);
 				// Listener to whom this message should be routed to.
-				MessageReceiptListener listener = getListener(srcAndMsg);
+				MessageListener listener = getListener(srcAndMsg);
 				// notify listener on different thread.
 				Callable<Void> messageListenerWrapper = 
 						new MessageListenerWrapper(listener, srcAndMsg, responseWriter);
@@ -107,7 +107,7 @@ final class TCPServer implements Callable<Void> {
 
 	}
 	
-	public void setMessageListeners(List<MessageReceiptListener> listeners) {
+	public void setMessageListeners(List<MessageListener> listeners) {
 		this.messageListeners = listeners;
 	}
 	
@@ -166,9 +166,9 @@ final class TCPServer implements Callable<Void> {
 		return this.messageAdaptor.read(tcpIncomingSocket);
 	}
 	
-	private MessageReceiptListener getListener(Pair<Process,Message> srcAndMsg) {
+	private MessageListener getListener(Pair<Process,Message> srcAndMsg) {
 		Message message = srcAndMsg.getRight();
-		for (MessageReceiptListener listener: this.messageListeners) {
+		for (MessageListener listener: this.messageListeners) {
 			if (listener.getIdentifier().equals(message.getMessageListenerId())){
 				return listener;
 			}
@@ -188,13 +188,13 @@ final class TCPServer implements Callable<Void> {
 	 * @author bbassi2
 	 */
 	private static class MessageListenerWrapper implements Callable<Void> {
-		private final MessageReceiptListener listener;
+		private final MessageListener listener;
 		private final Pair<Process,Message> srcAndMsg;
 		private final ResponseWriter responseWriter;
 		
 		
 		
-		public MessageListenerWrapper(MessageReceiptListener listener, Pair<Process, Message> srcAndMsg,
+		public MessageListenerWrapper(MessageListener listener, Pair<Process, Message> srcAndMsg,
 				ResponseWriter responseWriter) {
 			this.listener = listener;
 			this.srcAndMsg = srcAndMsg;
