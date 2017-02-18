@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.apache.commons.configuration2.Configuration;
 
+import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListenerIdentifier;
 import net.jcip.annotations.Immutable;
 
 /**
@@ -35,6 +36,16 @@ public interface Message extends Serializable {
 	
 	/** Get the process where this message started. */
 	public Process getOriginatingSource();
+	
+	/**
+	 * Who is this message sent to?
+	 * By who, we mean here which part of the application.
+	 * Some messages could be intended for failure dtector, some for isis algo etc.
+	 * @return the message listener that this message is intended for.
+	 */
+	public MessageListenerIdentifier getMessageListenerId();
+	
+	public void setMessageListenerId(MessageListenerIdentifier messageSentTo);
 	
 	/** Get other metadata associated with this message. */
 	public Configuration getMetadata();

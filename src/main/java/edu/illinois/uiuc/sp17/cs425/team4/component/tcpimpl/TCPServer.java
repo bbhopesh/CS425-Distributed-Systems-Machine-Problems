@@ -31,9 +31,8 @@ import net.jcip.annotations.NotThreadSafe;
  */
 @NotThreadSafe
 final class TCPServer implements Callable<Void> {
-	
-	/** Message listener. */
-	private MessageReceiptListener messageListener;
+	/** Message listeners. */
+	private List<MessageReceiptListener> messageListeners;
 	/** TCP server. */
 	private final ServerSocket tcpServerSocket;
 	/** Message Adaptor. */
@@ -78,10 +77,13 @@ final class TCPServer implements Callable<Void> {
 				 * from other thread. This will make accept() throw SocketException.
 				*/
 				Socket connectionSocket = this.tcpServerSocket.accept();
+				Pair<Process,Message> srcAndMsg = readMessage(connectionSocket);
+				ResponseWriter responseWriter = createResponseWriter(connectionSocket);
+				// Listener to whom this message should be routed to.
+				MessageReceiptListener listener = getListener(srcAndMsg);
 				// notify listener on different thread.
 				Callable<Void> messageListenerWrapper = 
-						new MessageListenerWrapper(this.messageListener,
-								connectionSocket, this.messageAdaptor, this.myIdentity);
+						new MessageListenerWrapper(listener, srcAndMsg, responseWriter);
 				Future<Void> future = this.threadPool.submit(messageListenerWrapper);
 				// Add to list of pending listeners.
 				pendingMessages.add(future);
@@ -105,9 +107,8 @@ final class TCPServer implements Callable<Void> {
 
 	}
 	
-	public boolean registerListener(MessageReceiptListener listener) {
-		this.messageListener = listener;
-		return true;
+	public void setMessageListeners(List<MessageReceiptListener> listeners) {
+		this.messageListeners = listeners;
 	}
 	
 	/**
@@ -161,58 +162,57 @@ final class TCPServer implements Callable<Void> {
 		return obj;
 	}
 	
+	private Pair<Process,Message> readMessage(Socket tcpIncomingSocket) {
+		return this.messageAdaptor.read(tcpIncomingSocket);
+	}
+	
+	private MessageReceiptListener getListener(Pair<Process,Message> srcAndMsg) {
+		Message message = srcAndMsg.getRight();
+		for (MessageReceiptListener listener: this.messageListeners) {
+			if (listener.getIdentifier().equals(message.getMessageListenerId())){
+				return listener;
+			}
+		}
+		return null;
+	}
+	
+	private ResponseWriter createResponseWriter(Socket tcpIncomingSocket) {
+		return new TCPResponseWriter(this.messageAdaptor, 
+				tcpIncomingSocket, this.myIdentity);
+	}
+	
+	
 	/**
 	 * A callable wrapper for MessageListener so that it could be submitted to a thread pool.
 	 *  
 	 * @author bbassi2
 	 */
 	private static class MessageListenerWrapper implements Callable<Void> {
-		/** Message listener. */
 		private final MessageReceiptListener listener;
-		/** Incoming socket for the tcp connection. */
-		private final Socket tcpIncomingSocket;
-		/** Adaptor. */
-		private final MessageAdaptor messageAdaptor;
-		/** My identity. */
-		private final Process myIdentity;
+		private final Pair<Process,Message> srcAndMsg;
+		private final ResponseWriter responseWriter;
 		
-		/**
-		 * Create an instance.
-		 * @param listener Listener wrapped by this callable.
-		 * @param tcpIncomingSocket Incoming message socket.
-		 * @param messageAdaptor Message adaptor for TCP messages.
-		 * @param myIdentity 
-		 */
-		private MessageListenerWrapper(MessageReceiptListener listener, 
-				Socket tcpIncomingSocket, MessageAdaptor messageAdaptor,
-				Process myIdentity) {
+		
+		
+		public MessageListenerWrapper(MessageReceiptListener listener, Pair<Process, Message> srcAndMsg,
+				ResponseWriter responseWriter) {
 			this.listener = listener;
-			this.tcpIncomingSocket = tcpIncomingSocket;
-			this.messageAdaptor = messageAdaptor;
-			this.myIdentity = myIdentity;
+			this.srcAndMsg = srcAndMsg;
+			this.responseWriter = responseWriter;
 		}
-		
+
+
+
 		@Override
 		public Void call() {
 			try {
-				// Read the message and it's source.
-				Pair<Process,Message> srcAndMsg = 
-						this.messageAdaptor.read(this.tcpIncomingSocket);
-				ResponseWriter responseWriter = new TCPResponseWriter(this.messageAdaptor, 
-														this.tcpIncomingSocket, this.myIdentity);
 				// Process the message.(Notify listener)
-				this.listener.messageReceived(srcAndMsg, responseWriter);
+				this.listener.messageReceived(this.srcAndMsg, this.responseWriter);
 			} catch (Exception e1) {
 				// ignore this exception. We cannot do anything about it.
 				// It came from client code and should have been handled by the client.
 			}
 			
-			// Try closing connection.
-			try {
-				this.tcpIncomingSocket.close();
-			} catch (IOException e) {
-				// ignore if error occurs while closing socket,
-			}
 			return null;
 		}
 		

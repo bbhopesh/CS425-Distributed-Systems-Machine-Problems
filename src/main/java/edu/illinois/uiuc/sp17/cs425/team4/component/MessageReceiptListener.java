@@ -18,4 +18,12 @@ public interface MessageReceiptListener {
 	 * @param responsWriter write response of the received message to this object.
 	 */
 	public void messageReceived(Pair<Process,Message>  sourceAndMsg, ResponseWriter responseWriter);
+	
+	/**
+	 * Get Identifier of this message receipt listener.
+	 * We need to uniquely identify each message receipt listener so that messenger
+	 * can appropriately route the incoming messages to one of the listeners.
+	 * @return Identifier of this message receipt listener.
+	 */
+	public MessageListenerIdentifier getIdentifier();
 }

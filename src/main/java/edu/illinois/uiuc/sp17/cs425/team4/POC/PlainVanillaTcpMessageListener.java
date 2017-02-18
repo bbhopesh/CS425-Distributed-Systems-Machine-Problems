@@ -2,6 +2,7 @@ package edu.illinois.uiuc.sp17.cs425.team4.POC;
 
 import org.apache.commons.lang3.tuple.Pair;
 
+import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListenerIdentifier;
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageReceiptListener;
 import edu.illinois.uiuc.sp17.cs425.team4.component.ResponseWriter;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
@@ -47,6 +48,12 @@ public class PlainVanillaTcpMessageListener implements MessageReceiptListener {
 		// TODO Auto-generated method stub
 		TextMessage txt = (TextMessage) sourceAndMsg.getRight();
 		System.out.println(txt);
+	}
+
+	@Override
+	public MessageListenerIdentifier getIdentifier() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

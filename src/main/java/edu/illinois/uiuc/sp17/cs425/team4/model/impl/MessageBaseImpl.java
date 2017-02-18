@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
 
+import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListenerIdentifier;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 
@@ -30,6 +31,13 @@ abstract class MessageBaseImpl implements Message, Serializable {
 	private final Map<String,Object> metaData;
 	/** Originating source. */
 	private final Process originatingSource;
+	/** 
+	 * The part of application for whom message is sent to. 
+	 * This is used by messenger to route the message to appropriate part of app
+	 * e.g. to failure detector, multicast etc.
+	 * analogous to URLs.
+	 */
+	private MessageListenerIdentifier messageIntendedFor;
 	
 	/**
 	 * Create an instance.
@@ -94,6 +102,16 @@ abstract class MessageBaseImpl implements Message, Serializable {
 	@Override
 	public Process getOriginatingSource() {
 		return this.originatingSource;
+	}
+
+	@Override
+	public MessageListenerIdentifier getMessageListenerId() {
+		return this.messageIntendedFor;
+	}
+
+	@Override
+	public void setMessageListenerId(MessageListenerIdentifier messageSentTo) {
+		this.messageIntendedFor = messageSentTo;
 	}
 
 	

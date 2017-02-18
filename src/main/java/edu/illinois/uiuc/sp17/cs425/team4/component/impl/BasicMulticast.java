@@ -8,6 +8,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Application;
 import edu.illinois.uiuc.sp17.cs425.team4.component.GroupChangeListener;
 import edu.illinois.uiuc.sp17.cs425.team4.component.GroupManager;
+import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListenerIdentifier;
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageReceiptListener;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Messenger;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Multicast;
@@ -34,6 +35,11 @@ public class BasicMulticast implements Multicast, MessageReceiptListener, GroupC
 	private final Model model;
 	/** Applications registered with this multicast. */
 	private Application registeredApplication;
+	/** Listener Identifier. */
+	private static final String S_IDENTIFIER = "BasicMulticast";
+	/** Listener Identifier. */
+	private static final MessageListenerIdentifier IDENTIFIER = 
+			new MessageListenerIdentifierImpl(S_IDENTIFIER);
 
 	
 	public BasicMulticast(GroupManager groupManager, Messenger mesenger) {
@@ -57,6 +63,8 @@ public class BasicMulticast implements Multicast, MessageReceiptListener, GroupC
 		// We might have to change code according to requirements there.
 		// Because it doesn't matter for MP1, leaving it as it is for now.
 		
+		// Stamp message listener id.
+		m.setMessageListenerId(IDENTIFIER);
 		for (Process p: this.groupManager.getGroupMembers()) {
 			// sending message to group members in a loop.
 			// TODO Might want to consider sending asynchronously on different threads...
@@ -81,15 +89,24 @@ public class BasicMulticast implements Multicast, MessageReceiptListener, GroupC
 	@Override
 	public void processJoined(Process j) {
 		// Ignores the message replied by application on receive of a process joined message.
+		Message message = model.createProcessJoinedMessage(this.groupManager.getMyIdentity());
+		message.setMessageListenerId(IDENTIFIER);
 		this.registeredApplication.deliver(
-				Pair.of(j, model.createProcessJoinedMessage(this.groupManager.getMyIdentity())));
+				Pair.of(j, message));
 	}
 
 	@Override
 	public void processLeft(Process l) {
 		// Ignores the message replied by application on receive of a process left message.
+		Message message = model.createProcessLeftMessage(this.groupManager.getMyIdentity());
+		message.setMessageListenerId(IDENTIFIER);
 		this.registeredApplication.deliver(
-				Pair.of(l, model.createProcessLeftMessage(this.groupManager.getMyIdentity())));
+				Pair.of(l, message));
 		
+	}
+
+	@Override
+	public MessageListenerIdentifier getIdentifier() {
+		return IDENTIFIER;
 	}
 }

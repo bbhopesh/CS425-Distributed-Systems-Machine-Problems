@@ -2,6 +2,8 @@ package edu.illinois.uiuc.sp17.cs425.team4.component.tcpimpl;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -47,6 +49,8 @@ final class TCPMessenger implements Messenger {
 	/** A result bearer for the execution of tcp server. */
 	private Future<Void> tcpServerFut;
 	
+	private List<MessageReceiptListener> messageListeners;
+	
 	/**
 	 * Create an instance.
 	 * @param builder Builder.
@@ -60,6 +64,7 @@ final class TCPMessenger implements Messenger {
 		// Get adaptor.
 		this.messageAdaptor = (MessageAdaptor) checkForNull(builder.getMessageAdaptor(), "Message Adaptor cannot be null");
 		this.myIdentity = (Process) checkForNull(builder.getMyIdentity(), "Identity cannot be null");
+		this.messageListeners = new CopyOnWriteArrayList<MessageReceiptListener>();
 	}
 	
 	
@@ -67,7 +72,7 @@ final class TCPMessenger implements Messenger {
 	public void initialize() {
 		synchronized(this) {
 			if (!initialized) {
-				checkListener();
+				this.tcpServer.setMessageListeners(this.messageListeners);
 				this.initialized = true;
 			} else {
 				throw new ContextedRuntimeException("Messenger already initialized. Ignoring this call.");
@@ -79,10 +84,7 @@ final class TCPMessenger implements Messenger {
 	
 	@Override
 	public Message send(Pair<Process, Message> dstnAndMsg) {
-		synchronized(this) {
-			//checkInitialization(); // Initializations tarts server, we don't have to check for it here.
-			checkForFailure();
-		}
+		checkForFailure();
 		try {
 			// Open socket with destination.
 			Process p = dstnAndMsg.getLeft();
@@ -102,39 +104,14 @@ final class TCPMessenger implements Messenger {
 	
 
 	@Override
-	public synchronized boolean registerListener(MessageReceiptListener listener) {
+	public boolean registerListener(MessageReceiptListener listener) {
 		checkForFailure();
-		return checkAndSetListener(listener);
+		return this.messageListeners.add(listener);
 	}
+
 	
 	@GuardedBy("this")
-	private void checkListener() {
-		if (this.messageReceiptListener == null) {
-			throw new ContextedRuntimeException("Message listener must be registered.");
-		}
-	}
-	
-	@GuardedBy("this")
-	private boolean checkAndSetListener(MessageReceiptListener listener) {
-		if (this.messageReceiptListener == null) {
-			this.messageReceiptListener = (MessageReceiptListener) 
-										checkForNull(listener, "Null listener can't be registered.");
-			this.tcpServer.registerListener(this.messageReceiptListener);
-		} else {
-			throw new ContextedRuntimeException("Message listener already registered.");
-		}
-		return true;
-	}
-	
-	@GuardedBy("this")
-	private void checkInitialization() {
-		if (!initialized) {
-			throw new ContextedRuntimeException("Messenger should be initialized first.");
-		}
-	}
-	
-	@GuardedBy("this")
-	private void checkForFailure() {
+	private synchronized void checkForFailure() {
 		if (this.tcpServerFut != null && this.tcpServerFut.isDone()) {
 			try {
 				// following line will throw exception if there was an error on server.
