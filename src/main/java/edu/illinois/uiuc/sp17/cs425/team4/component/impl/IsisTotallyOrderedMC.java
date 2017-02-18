@@ -59,6 +59,7 @@ public class IsisTotallyOrderedMC implements Multicast, Application, MessageList
 	@Override
 	public void multicast(Message m) {
 		// TODO Auto-generated method stub
+		// Added by Bhopesh, don't stamp S_IDENTIFIER on message here, stamp only on those messages that you send via messenger.
 	}
 
 	@Override
