@@ -45,6 +45,8 @@ public class IsisTotallyOrderedMC implements Multicast, Application, MessageList
 	private static final String PRIORITY = "MESSAGE_PRIORITY";
 	/** message agreement keyword */
 	private static final String AGREED = "MESSAGE_AGREEMENT";
+	private static final int FIRST_ROUND_TIMEOUT = 4000;
+	
 	/** Priority comparator anonymous class implementation */
 	public static Comparator<Message> pComparator = new Comparator<Message>(){	
 		@Override
@@ -79,7 +81,8 @@ public class IsisTotallyOrderedMC implements Multicast, Application, MessageList
 		m.getMetadata().setProperty(AGREED, new Boolean(false));
 		for(Process p : groupManager.getGroupMembers()) {
 			try {
-				Message replied = this.messenger.send(Pair.of(p, m));
+				// timeout added by Bhopesh, Randolph needs to think what to do in case message times out.
+				Message replied = this.messenger.send(Pair.of(p, m), FIRST_ROUND_TIMEOUT);
 				int compareRes = pComparator.compare(m, replied);
 				if(compareRes < 0) {
 					Pair<String, Integer> newPriority  =  replied.getMetadata().get(clazz, PRIORITY);

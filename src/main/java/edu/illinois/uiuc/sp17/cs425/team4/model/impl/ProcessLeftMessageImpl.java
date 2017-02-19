@@ -19,7 +19,7 @@ class ProcessLeftMessageImpl extends MessageBaseImpl implements Serializable {
 	 * Create an instance. Leaves responsibility of assigning unique id to base class.
 	 */
 	public ProcessLeftMessageImpl(Process originatingSource) {
-		super(MessageType.JOINED, originatingSource);
+		super(MessageType.LEFT, originatingSource);
 	}
 	
 	/**
@@ -27,7 +27,7 @@ class ProcessLeftMessageImpl extends MessageBaseImpl implements Serializable {
 	 * @param uId unique idnetifier.
 	 */
 	public ProcessLeftMessageImpl(Process originatingSource,UUID uId) {
-		super(MessageType.JOINED, originatingSource, uId);
+		super(MessageType.LEFT, originatingSource, uId);
 	}
 	
 	@Override

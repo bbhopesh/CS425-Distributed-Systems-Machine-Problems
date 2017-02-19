@@ -8,6 +8,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import edu.illinois.uiuc.sp17.cs425.team4.component.ChatApplication;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Multicast;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
+import edu.illinois.uiuc.sp17.cs425.team4.model.Message.MessageType;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Model;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import edu.illinois.uiuc.sp17.cs425.team4.model.TextMessage;
@@ -64,31 +65,40 @@ public class SimpleChatApplication implements ChatApplication {
 	
 	@Override
 	public void deliver(Pair<Process, Message> incomingMessage) {
-		TextMessage message = (TextMessage) incomingMessage.getRight();
+		Process sender = incomingMessage.getLeft();
+		Message message = incomingMessage.getRight();
+		if (isTextMessage(message)) {
+			handleTextMessage((TextMessage) message);
+		} else if (isFailureMessage(message)) {
+			handleFailureMessage(sender);
+		} else {
+			// ignore.
+			// SimpleChatApplication only handles two types of messages.
+		}
+	}
+	
+	private boolean isTextMessage(Message message) {
+		return message.getMessageType() == MessageType.TEXT;
+	}
+	
+	private boolean isFailureMessage(Message message) {
+		return message.getMessageType() == MessageType.LEFT;
+	}
+	
+	private void handleTextMessage(TextMessage txt) {
 		// We don't care about which peer forwarded the message to us.
 		// We care about whose message is this.
-		Process sender = message.getOriginatingSource();
+		Process sender = txt.getOriginatingSource();
 		StringBuilder sb = new StringBuilder();
 		
 		sb.append(sender.getDisplayName())
 		.append(": ")
-		.append(message.getText());
+		.append(txt.getText());
 		this.output.println(sb.toString());
-		
-		/*if(model.containsSameProcess(sender)){
-			sb.append(sender.getDisplayName())
-				.append(": ")
-				.append(message.getText());
-			this.output.println(sb.toString());	
-		}else{
-			sb.append("\b\b\b")
-				.append(sender.getDisplayName())
-				.append(": ")
-				.append(message.getText());
-			this.output.println(sb.toString());
-			this.output.print(PROMPT);
-		}*/
-		
+	}
+	
+	private void handleFailureMessage(Process failure) {
+		this.output.println(failure.getDisplayName() + " has left the chat.");
 	}
 
 	@Override

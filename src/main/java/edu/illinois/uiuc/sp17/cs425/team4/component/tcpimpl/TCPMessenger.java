@@ -83,12 +83,15 @@ final class TCPMessenger implements Messenger {
 	}
 	
 	@Override
-	public Message send(Pair<Process, Message> dstnAndMsg) {
+	public Message send(Pair<Process, Message> dstnAndMsg, int timeout) {
 		checkForFailure();
+		// Thread safety on this message relies on the thread safety of message adaptor.
 		try {
 			// Open socket with destination.
 			Process p = dstnAndMsg.getLeft();
 			Socket s = new Socket(p.getInetAddress(), p.getPort());
+			// set timeout.
+			s.setSoTimeout(timeout);
 			// Send destination the message and tell them who sent it.
 			this.messageAdaptor.write(s, Pair.of(this.myIdentity, dstnAndMsg.getRight()));
 			// Read response back and ignore source of this msg as source of the response msg will be destination of original msg.

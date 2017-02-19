@@ -32,14 +32,11 @@ public class TCPMessageAdaptor implements MessageAdaptor {
 	/** Socket timeout to be used by read method. */
 	// TODO take timeout from outside or deal with this problem in a better way..
 	// ... haven't given a lot of thought as of now.
-	private static final int SO_TIMEOUT = 1000;
 	
 	@Override
 	public Pair<Process, Message> read(Object conn) {
 		try {
 			Socket socket =  (Socket) conn;
-			// Give socket enough time before timing out.
-			socket.setSoTimeout(SO_TIMEOUT);
 			byte[] serverResponse = IOUtils.readInputSizePrefixed(socket.getInputStream());
 			// Deserialize.
 			Pair<Process, Message> srcAndMsg = SerializationUtils.deserialize(serverResponse);

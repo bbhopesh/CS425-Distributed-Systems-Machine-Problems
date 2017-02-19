@@ -34,6 +34,12 @@ public class StaticGroupManagerImpl implements GroupManager {
 		return false;
 	}
 
+	@Override
+	public void initialize() {
+		// TODO Auto-generated method stub
+		
+	}
+
 	
 	
 }

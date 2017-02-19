@@ -10,6 +10,13 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
  * @author bbassi2
  */
 public interface GroupManager {
+	
+	/** 
+	 * Initialize GroupManager.
+	 */
+	public void initialize();
+	
+	
 	/**
 	 * Returns current process.
 	 * @return current process.

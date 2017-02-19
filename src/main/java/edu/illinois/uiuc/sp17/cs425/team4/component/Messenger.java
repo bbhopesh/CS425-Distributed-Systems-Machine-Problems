@@ -16,18 +16,18 @@ public interface Messenger {
 	
 	/** 
 	 * Initialize messenger.
-	 * This method should be called before calling any other method on the messenger.
 	 */
 	public void initialize();
 	
 	/**
 	 * Send message to the given destination.
 	 * @param dstnAndMsg Pair containing message and it's destination.
+	 * @param timeout no of milliseconds to wait for the response.
 	 * @return The reply of the sent message.
 	 * @throws ContexedRuntimeException if there is a problem in sending the message.
 	 */
 	// TODO Add timeout argument to send.
-	public Message send(Pair<Process, Message> dstnAndMsg) throws ContextedRuntimeException;
+	public Message send(Pair<Process, Message> dstnAndMsg, int timeout) throws ContextedRuntimeException;
 	
 	
 	/**
