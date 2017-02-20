@@ -96,7 +96,6 @@ public class BasicMulticast implements Multicast, MessageListener, GroupChangeLi
 
 	@Override
 	public void processLeft(Process l) {
-		System.out.println("Process left:" +  l);
 		// Ignores the message replied by application on receive of a process left message.
 		Message message = model.createProcessLeftMessage(this.groupManager.getMyIdentity());
 		message.setMessageListenerId(IDENTIFIER);

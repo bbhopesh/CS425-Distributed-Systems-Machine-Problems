@@ -142,20 +142,74 @@ public class SWIMFailureDetectorV2 implements GroupManager, MessageListener, Cal
 		return this.protocolPeriodsElapsed;
 	}
 	
+	// The commented out multi-threaded version is not working with delays in the network.
+	// Some it takes many seconds for pings sent here(if started on diff threads.) to receive
+	// at other end. Same problem was occurring with v1 swim failure detector for indirect messages.
+	/*private void protocolPeriod() {
+		// Action are implemented only for a single protocol period.
+		// This function should be called periodically.
+		Message pingMessage = createPingMessage();
+		List<Process> kPingTargets = kRandomPeers(this.pingTargets);
+		LOG.debug(String.format("[Picked %s as ping targets.]", kPingTargets));
+		List<Future<Void>> pingResults = new ArrayList<Future<Void>>(kPingTargets.size());
+		
+		for (Process pingTarget: kPingTargets) {
+			Callable<Void> pingTask = new Callable<Void>() {
+				@Override
+				public Void call() throws Exception {
+					try {
+						Message ack = pingProcess(pingMessage, pingTarget, directPingTimeout());
+						if (ack != null) {
+							// Protocol period satisfied.
+							LOG.debug(String.format("[Ack %s received from %s for ping %s.]",
+									ack.getUUID(), pingTarget, pingMessage.getUUID()));
+						} else {
+							LOG.debug(String.format("[Didn't receive ack from %s for ping %s, declaring it as failed.]", 
+									pingTarget, pingMessage.getUUID()));
+							// Method should have returned by now, if it didn't then ping target has failed.
+							markAsFailed(pingTarget);
+						}
+					} catch (Exception e) {
+						// ignore. We can try pinging later.
+					}
+					return null;
+				}
+			};
+			pingResults.add(this.threadPool.submit(pingTask));
+		}
+		// Wait for all pings to complete.
+		int completed = 0;
+		while (completed < pingResults.size()) {
+			Iterator<Future<Void>> it = pingResults.iterator();
+			while(it.hasNext()) {
+				Future<Void> nxt = it.next();
+				if (nxt.isDone()) {
+					it.remove();
+					completed++;
+				}
+			}
+		}
+	}*/
 	
 	private void protocolPeriod() {
 		// Action are implemented only for a single protocol period.
 		// This function should be called periodically.
-		Process pingTarget = pickPingTarget();
-		LOG.debug(String.format("[Picked %s as ping target.]", pingTarget));
-		Message ack = pingProcess(createPingMessage(), pingTarget, directPingTimeout());
-		if (ack != null) {
-			// Protocol period satisfied.
-			LOG.debug(String.format("[Ack received from %s.]", pingTarget));
-		} else {
-			LOG.debug(String.format("[Didn't receive ack from %s, declaring it as failed.]", pingTarget));
-			// Method should have returned by now, if it didn't then ping target has failed.
-			markAsFailed(pingTarget);
+		Message pingMessage = createPingMessage();
+		List<Process> kPingTargets = kRandomPeers(this.pingTargets);
+		LOG.debug(String.format("[Picked %s as ping targets.]", kPingTargets));
+		
+		for (Process pingTarget: kPingTargets) {
+			Message ack = pingProcess(pingMessage, pingTarget, directPingTimeout());
+			if (ack != null) {
+				// Protocol period satisfied.
+				LOG.debug(String.format("[Ack %s received from %s for ping %s.]",
+						ack.getUUID(), pingTarget, pingMessage.getUUID()));
+			} else {
+				LOG.debug(String.format("[Didn't receive ack from %s for ping %s, declaring it as failed.]", 
+						pingTarget, pingMessage.getUUID()));
+				// Method should have returned by now, if it didn't then ping target has failed.
+				markAsFailed(pingTarget);
+			}
 		}
 	}
 	
@@ -177,20 +231,6 @@ public class SWIMFailureDetectorV2 implements GroupManager, MessageListener, Cal
 		}
 	}
 	
-	private Process pickPingTarget() {
-		// Randomly shuffle and pick one element to ping.
-		List<Process> groupMembersList = new ArrayList<Process>(this.groupMembers);
-		Collections.shuffle(groupMembersList);
-		
-		while(true) {
-			int nextElement = new Random().nextInt(groupMembersList.size());
-			Process pingTarget = groupMembersList.get(nextElement);
-			if (!pingTarget.equals(this.myIdentity)) {
-				return pingTarget;
-			}
-		}
-	}
-	
 	private Message pingProcess(Message pingMessage, Process process, int timeout) {
 		Message response = null;
 		try {
@@ -204,25 +244,24 @@ public class SWIMFailureDetectorV2 implements GroupManager, MessageListener, Cal
 		return response;
 	}
 	
-	private List<Process> kRandomPeers(int k, Process target) {
+	private List<Process> kRandomPeers(int k) {
 		// gets k random targets from the group.
 		// Randomly shuffle and pick k members.
 		List<Process> groupMembersList = new ArrayList<Process>(this.groupMembers);
 		Collections.shuffle(groupMembersList, new Random(this.myIdentity.hashCode() + System.currentTimeMillis()));
-		int k1 = Math.min(k+2, groupMembersList.size());
+		int k1 = Math.min(k+1, groupMembersList.size());
 		List<Process> groupMembers = groupMembersList.subList(0, k1);
 		
 		Iterator<Process> it = groupMembers.iterator();
 		while(it.hasNext()) {
 			Process nxt = it.next();
-			if (nxt.equals(this.myIdentity) || nxt.equals(target)) {
+			if (nxt.equals(this.myIdentity)) {
 				it.remove();
 			}
 		}
 		
 		return groupMembers;
 	}
-	
 	
 	private Message createPingMessage() {
 		Message ping = this.model.createPingMessage(this.myIdentity);
@@ -334,6 +373,4 @@ public class SWIMFailureDetectorV2 implements GroupManager, MessageListener, Cal
 	public MessageListenerIdentifier getIdentifier() {
 		return IDENTIFIER;
 	}
-	
-	
 }
