@@ -1,11 +1,11 @@
 package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
 
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -13,11 +13,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.apache.commons.lang3.tuple.Pair;
@@ -36,62 +33,54 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import edu.illinois.uiuc.sp17.cs425.team4.model.impl.ModelImpl;
 import net.jcip.annotations.GuardedBy;
 
-public class SWIMFailureDetector implements GroupManager, MessageListener, Callable<Void> {
+public class SWIMFailureDetectorV2 implements GroupManager, MessageListener, Callable<Void> {
 	private final static Logger LOG = Logger.getLogger(SWIMFailureDetector.class.getName());
 	/** Listener Identifier. */
-	private static final String S_IDENTIFIER = "SWIMFailureDetector";
+	private static final String S_IDENTIFIER = "SwimV2FailureDetector";
 	/** Listener Identifier. */
 	private static final MessageListenerIdentifier IDENTIFIER = 
 			new MessageListenerIdentifierImpl(S_IDENTIFIER);
-	private static final String INDIRECT_PING_PROP = S_IDENTIFIER + " IndirectPing";
 	private static final String FAILED_PROCESSES_PROP = S_IDENTIFIER  + " FailedProcesses";
 	private final Process myIdentity;
 	private final Set<Process> groupMembers;
-	private final int initialSize;
 	private final Messenger messenger;
 	private final List<GroupChangeListener> groupChangeListeners;
 	private final ConcurrentMap<Process,Integer> failures;
-	/** Wait time for direct acknowledgement as a fraction of protocol period. */
-	private final int ackWaitTime = 50;
+	
+	private final int ackTimeout;
 	/** Model. */
 	private final Model model;
 	private final ExecutorService threadPool;
-	/**
-	 * If we use piggybacked messages on top of ping-ack to disseminate failure detections,
-	 * then after (lambda)log(N) periods, N^(-(2*lambda-2)) wouldn't have heard of update
-	 * of detected failures. Hence, lambda dictates the level of consistency and can be set
-	 * experimentally after trying various values. 
-	 */
-	private final int lambda;
+	 
 	private final int protocolPeriod;
 	private final double minProtocolPeriod;
 	private final int minTimeForProtocolPeriod;
-	private final int indirectPingTargetCount;
+	private final int pingTargets;
 	
 	@GuardedBy("this")
 	private int protocolPeriodsElapsed;
 	private ScheduledFuture<?> gcService;
 	private Future<Void> groupManagerService;
 	
+	
 
-	public SWIMFailureDetector(Process myIdentity, 
+	public SWIMFailureDetectorV2(Process myIdentity, 
 									Set<Process> groupMembers,
 									Messenger messenger,
-									int lambda,
+									int ackTimeout,
 									int protocolPeriod,
 									double minProtocolPeriod,
-									int indirectPingTargetCount,
-									ExecutorService threadPool) {
+									int pingTargets,
+									ExecutorService threadPool) throws FileNotFoundException {
 		this.myIdentity = myIdentity;
 		this.groupMembers = initializeGroupMembers(groupMembers);
-		this.initialSize = this.groupMembers.size();
 		this.messenger = messenger;
 		this.messenger.registerListener(this);
-		this.lambda = lambda;
+		this.ackTimeout = ackTimeout;
 		this.protocolPeriod = protocolPeriod;
 		this.minProtocolPeriod = minProtocolPeriod;
 		this.minTimeForProtocolPeriod = calulateMinTimeForProtocolPeriod();
-		this.indirectPingTargetCount = indirectPingTargetCount;
+		this.pingTargets = pingTargets;
 		this.threadPool = threadPool;
 		this.protocolPeriodsElapsed = 0;
 		this.groupChangeListeners =  new CopyOnWriteArrayList<GroupChangeListener>();
@@ -114,16 +103,6 @@ public class SWIMFailureDetector implements GroupManager, MessageListener, Calla
 	@Override
 	public void initialize() {
 		this.groupManagerService = this.threadPool.submit(this);
-		
-		// Start service for garbage collecting old failures.
-		ScheduledExecutorService scheduleExecutor = 
-				Executors.newSingleThreadScheduledExecutor();
-		Runnable gcOlderFailures = new OldFailuresGarbageCollector();
-		int delay = removeOlderThan()*this.protocolPeriod;
-		int interval = removeOlderThan()*this.protocolPeriod;
-		this.gcService = 
-				scheduleExecutor.scheduleAtFixedRate(gcOlderFailures, 
-				delay, interval, TimeUnit.MILLISECONDS);
 	}
 	
 	
@@ -172,27 +151,9 @@ public class SWIMFailureDetector implements GroupManager, MessageListener, Calla
 		Message ack = pingProcess(createPingMessage(), pingTarget, directPingTimeout());
 		if (ack != null) {
 			// Protocol period satisfied.
-			LOG.debug(String.format("[Direct ack received from %s, protocol period satisfies.]", pingTarget));
+			LOG.debug(String.format("[Ack received from %s.]", pingTarget));
 		} else {
-			LOG.debug(String.format("[Didn't receive direct ack from %s, trying indirect ping]", pingTarget));
-			// Ping via indirect path.
-			// Futures should have result(either actual reply or null in (1-ackWait)*protocolPeriod ms)
-			List<Future<Message>> indirectPings 
-								= kIndirectPings(pingTarget, this.indirectPingTargetCount);
-			List<Future<Message>> completed = new ArrayList<Future<Message>>(indirectPings.size());
-			
-			while (completed.size() != indirectPings.size()) { // While everything is not completed, keep checkin
-				for (Future<Message> fut: indirectPings) {
-					if(fut.isDone() && !completed.contains(fut)) {
-						completed.add(fut);
-						if(receivedIndirectAck(fut)){
-							LOG.debug(String.format("[Received indirect ack from %s. Protocol satisfied.]", pingTarget));
-							return; // protocol satisfied.
-						}
-					}
-				}
-			}
-			LOG.debug(String.format("[Didn't receive direct or indirect ack from %s, declaring it as failed.]", pingTarget));
+			LOG.debug(String.format("[Didn't receive ack from %s, declaring it as failed.]", pingTarget));
 			// Method should have returned by now, if it didn't then ping target has failed.
 			markAsFailed(pingTarget);
 		}
@@ -215,20 +176,6 @@ public class SWIMFailureDetector implements GroupManager, MessageListener, Calla
 			listener.processLeft(failure);
 		}
 	}
-
-	private boolean receivedIndirectAck(Future<Message> indirectPing) {
-		try {
-			Message indirectPingReply = indirectPing.get();
-			if (indirectPingReply == null) {
-				// didn't receive indirect ack
-				return false;
-			} else {
-				// Received indirect ack
-				// Protocol period satisfied.
-				return true;
-			}
-		} catch (Exception e) {return false;} // ignore. can never reach here. Our callable catches all exceptions and returns null instead.
-	}
 	
 	private Process pickPingTarget() {
 		// Randomly shuffle and pick one element to ping.
@@ -249,69 +196,19 @@ public class SWIMFailureDetector implements GroupManager, MessageListener, Calla
 		try {
 			response = messenger.send(Pair.of(process, pingMessage),timeout);
 		} catch (Exception e) {
-			// ignore
+			// TODO this response should ideally be returned as null only when there was error in sendin message
+			// and not some place in my code.
+			// But assuming my code doesn't have such a bug, leaving it as it is for now.
+			LOG.debug(e);
 		}
 		return response;
-	}
-	
-	private List<Future<Message>> kIndirectPings(Process target, int k) {
-		// Pick peers who will send indirect ping to target
-		List<Process> kRandomPeers = kRandomPeers(k,target);
-		LOG.debug(String.format("[Indirect ping targets %s]", kRandomPeers));
-		// Futures representing result of indirect pings.
-		List<Future<Message>> indirectPingFuts = 
-				new ArrayList<Future<Message>>(kRandomPeers.size());
-
-		// Ping
-		for (int i = 0; i < kRandomPeers.size(); i++) {
-			// Callable to ping asyncronously.
-			Callable<Message> indirectPingCallable = 
-					createIndirectPingCallable(target, kRandomPeers.get(i));
-			// Submit to threadpool.
-			Future<Message> fut = this.threadPool.submit(indirectPingCallable);
-			indirectPingFuts.add(fut);
-		}
-		return indirectPingFuts;
-	}
-	
-	private Callable<Message> createIndirectPingCallable(
-			Process target, Process via) {
-		// Create indirect ping message.
-		Message indirectPingMessage = createIndirectPingMessage(target);
-		// Callable that sends indirect ping message.
-		return new Callable<Message>() {
-			@Override
-			public Message call() throws Exception {
-				// ackWaitTime fraction of protocol period was given to direct ping.
-				// Rest of it is given to indirect pings.
-				
-				// We don't care if we didn't get reply because of exception or because process didn't reply.
-				// If we don't get a response, we return null.
-				Message response = null;
-				try {
-					response = messenger.send(Pair.of(via, indirectPingMessage), 
-							indirectPingTimeout());
-				} catch (Exception e) {
-					// ignore
-				}
-				return response;
-			}
-		};
-	}
-	
-	private Message createIndirectPingMessage(Process target) {
-		// Create ping message.
-		Message pingMessage = createPingMessage();
-		// Stamp that it is indirect.
-		pingMessage.getMetadata().setProperty(INDIRECT_PING_PROP, target);
-		return pingMessage;
 	}
 	
 	private List<Process> kRandomPeers(int k, Process target) {
 		// gets k random targets from the group.
 		// Randomly shuffle and pick k members.
 		List<Process> groupMembersList = new ArrayList<Process>(this.groupMembers);
-		Collections.shuffle(groupMembersList);
+		Collections.shuffle(groupMembersList, new Random(this.myIdentity.hashCode() + System.currentTimeMillis()));
 		int k1 = Math.min(k+2, groupMembersList.size());
 		List<Process> groupMembers = groupMembersList.subList(0, k1);
 		
@@ -381,11 +278,7 @@ public class SWIMFailureDetector implements GroupManager, MessageListener, Calla
 	}
 
 	private void handlePing(Process sender, Message msg, ResponseWriter responseWriter) {
-		if (isIndirectPing(msg)) {
-			handleIndirectPing(sender, msg, responseWriter);
-		} else {
-			handleDirectPing(sender, msg, responseWriter);
-		}
+		handleDirectPing(sender, msg, responseWriter);
 		readPiggyBackedFailureInformation(msg);
 	}
 	
@@ -398,31 +291,12 @@ public class SWIMFailureDetector implements GroupManager, MessageListener, Calla
 		responseWriter.close();
 	}
 	
-	private void handleIndirectPing(Process sender, Message msg, ResponseWriter responseWriter) {
-		// Who should I ping on sender's behalf?
-		Process indirectPingTarget = (Process) msg.getMetadata().getProperty(INDIRECT_PING_PROP);
-		// Remove indirect ping property before forwarding so we dont get stuck in loop.
-		msg.getMetadata().setProperty(INDIRECT_PING_PROP, null);
-		Message response = pingProcess(msg, indirectPingTarget, indirectPingTimeout());
-		LOG.debug(String.format("I Responding to message %s from %s with message %s",msg.getUUID(), sender.getDisplayName(), response.getUUID()));
-		if (response != null) {
-			stampMetaData(response);
-			responseWriter.writeResponse(response);
-		}
-		responseWriter.close();
-	}
 	
-	private boolean isIndirectPing(Message msg) {
-		return msg.getMetadata().getProperty(INDIRECT_PING_PROP) != null;
-	}
 
 	private int directPingTimeout() {
-		return this.ackWaitTime;
+		return this.ackTimeout;
 	}
-	
-	private int indirectPingTimeout() {
-		return this.protocolPeriod - this.ackWaitTime;
-	}
+
 	
 	@SuppressWarnings("unchecked")
 	private void readPiggyBackedFailureInformation(Message received) {
@@ -456,31 +330,10 @@ public class SWIMFailureDetector implements GroupManager, MessageListener, Calla
 						Collections.unmodifiableMap(this.failures));
 	}
 	
-	
-	private int removeOlderThan() {
-		return (int) (Math.log(initialSize)*lambda);
-	}
-	
 	@Override
 	public MessageListenerIdentifier getIdentifier() {
 		return IDENTIFIER;
 	}
 	
-	private class OldFailuresGarbageCollector implements Runnable {
-
-		@Override
-		public void run() {
-			int removeOlderThan = removeOlderThan();
-			int currentProtcolPeriod = getProtocolPeriodNumber();
-			Iterator<Entry<Process, Integer>> itr = failures.entrySet().iterator();
-			while(itr.hasNext()) {
-				if(Thread.currentThread().isInterrupted()) return;
-				Entry<Process, Integer> ent = itr.next();
-				if (currentProtcolPeriod - ent.getValue() > removeOlderThan) {
-					itr.remove();
-				}
-			}
-		}
-	}
 	
 }

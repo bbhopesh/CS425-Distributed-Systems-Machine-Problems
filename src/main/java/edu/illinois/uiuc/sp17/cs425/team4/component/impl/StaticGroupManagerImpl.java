@@ -40,6 +40,12 @@ public class StaticGroupManagerImpl implements GroupManager {
 		
 	}
 
+	@Override
+	public void close() {
+		// TODO Auto-generated method stub
+		
+	}
+
 	
 	
 }

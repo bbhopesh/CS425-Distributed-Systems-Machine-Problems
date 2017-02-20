@@ -83,8 +83,14 @@ public class A {
 	
 	public static GroupManager createGroupManager(Messenger messenger, ExecutorService threadPool) {
 		//return new StaticGroupManagerImpl(mySelf, groupMembers);
-		return new SWIMFailureDetector(mySelf, groupMembers, messenger, 
-				0, 3000, 1, threadPool);
+		return new SWIMFailureDetector(mySelf, 
+				groupMembers,
+				messenger, 
+				10, 
+				3000, 
+				0.17,
+				3,
+				threadPool);
 	}
 	
 	private static Messenger createTCPMessenger(ExecutorService threadPool) throws IOException {

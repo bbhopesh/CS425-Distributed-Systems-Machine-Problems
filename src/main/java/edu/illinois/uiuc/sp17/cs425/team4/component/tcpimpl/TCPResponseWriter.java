@@ -12,7 +12,6 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 
 public class TCPResponseWriter implements ResponseWriter{
-	
 	private final MessageAdaptor messageAdaptor;
 	private final Socket tcpSocket;
 	private final Process myIdentity;
@@ -32,6 +31,7 @@ public class TCPResponseWriter implements ResponseWriter{
 		// Anyway, not calling this more than once for now.
 		if (response != null) {
 			try {
+				//addRandomDelay(response);
 				this.messageAdaptor.write(this.tcpSocket,
 								Pair.of(this.myIdentity, response));
 			} catch (Exception e) {

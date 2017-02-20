@@ -49,3 +49,5 @@ myTar.dependsOn ':jar'
 artifacts {
     archives myTar
 }
+
+

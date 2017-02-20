@@ -35,4 +35,6 @@ public interface GroupManager {
 	 * @return true if registered successfully.
 	 */
 	public boolean registerGroupChangeListener(GroupChangeListener groupChangeListener);
+	
+	public void close();
 }

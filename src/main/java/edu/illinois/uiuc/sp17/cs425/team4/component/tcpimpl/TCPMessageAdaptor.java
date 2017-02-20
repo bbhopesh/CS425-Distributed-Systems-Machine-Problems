@@ -10,6 +10,7 @@ import java.net.SocketTimeoutException;
 import org.apache.commons.lang3.SerializationUtils;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.log4j.Logger;
 
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageAdaptor;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
@@ -29,6 +30,7 @@ import edu.illinois.uiuc.sp17.cs425.team4.util.IOUtils;
  *
  */
 public class TCPMessageAdaptor implements MessageAdaptor {
+	private final static Logger LOG = Logger.getLogger(TCPMessageAdaptor.class.getName());
 	/** Socket timeout to be used by read method. */
 	// TODO take timeout from outside or deal with this problem in a better way..
 	// ... haven't given a lot of thought as of now.
@@ -43,9 +45,11 @@ public class TCPMessageAdaptor implements MessageAdaptor {
 			return srcAndMsg;
 		} catch (SocketTimeoutException e) {
 			// timeout.
+			LOG.debug(e.getMessage());
 			return null;
 		} catch (EOFException e) {
 			// remote socket closed by peer.
+			LOG.debug(e.getMessage());
 			return null;
 		} catch (IOException e) {
 			throw new ContextedRuntimeException(e);
