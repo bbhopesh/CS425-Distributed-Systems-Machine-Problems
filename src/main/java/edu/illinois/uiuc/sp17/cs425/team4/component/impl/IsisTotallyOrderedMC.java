@@ -50,8 +50,14 @@ public class IsisTotallyOrderedMC implements Multicast, Application, MessageList
 		@Override
 		public int compare(Message c1, Message c2) {
 			// TODO Auto generated.
+			if(c1 == null || c2 == null) {
+				throw new IllegalArgumentException("message to compare should not be null ");
+			}
 			Pair<String, Integer> c1p  =  c1.getMetadata().get(clazz, PRIORITY);
-			Pair<String, Integer> c2p  =  c1.getMetadata().get(clazz, PRIORITY);
+			Pair<String, Integer> c2p  =  c2.getMetadata().get(clazz, PRIORITY);
+			if(c1p == null || c2p == null) {
+				throw new IllegalArgumentException("message must contain priority property");
+			}
 			int order = c1p.getRight().compareTo(c2p.getRight());
 			if(order == 0) {
 				//If tie, use process name to break the tie
@@ -77,9 +83,14 @@ public class IsisTotallyOrderedMC implements Multicast, Application, MessageList
 		// TODO Auto-generated method stub
 		m.setMessageListenerId(IDENTIFIER);
 		m.getMetadata().setProperty(AGREED, new Boolean(false));
+		m.getMetadata().setProperty(PRIORITY,Pair.of(this.groupManager.getMyIdentity().getDisplayName(),new Integer(-1)));	
+		
 		for(Process p : groupManager.getGroupMembers()) {
 			try {
 				Message replied = this.messenger.send(Pair.of(p, m));
+				if(replied == null) {
+					System.err.println("received null message");
+				}
 				int compareRes = pComparator.compare(m, replied);
 				if(compareRes < 0) {
 					Pair<String, Integer> newPriority  =  replied.getMetadata().get(clazz, PRIORITY);
