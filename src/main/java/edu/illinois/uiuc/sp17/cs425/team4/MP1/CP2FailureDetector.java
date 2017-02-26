@@ -29,6 +29,7 @@ import edu.illinois.uiuc.sp17.cs425.team4.component.Messenger;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Multicast;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.AllToAllReliableMulticast;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.BasicMulticast;
+import edu.illinois.uiuc.sp17.cs425.team4.component.impl.IsisTotallyOrderedMC;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.MessageListenerIdentifierImpl;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.SWIMFailureDetectorV2;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.SimpleChatApplication;
@@ -106,8 +107,10 @@ public class CP2FailureDetector {
 		Multicast basicMulticast = createBasicMulticast(groupManager, messenger);
 		// Create Reliable multicast.
 		Multicast reliableMulticast = createReliableMulticast(basicMulticast,groupManager);
+		// Create totally ordered multicast 
+		Multicast TOMulticast = createTOMulticast(reliableMulticast,messenger,groupManager);
 		// Create and start app.
-		ChatApplication app =  createChatApplication(reliableMulticast);
+		ChatApplication app =  createChatApplication(TOMulticast);
 		app.startChat();
 		// App is done. exit system.
 		System.exit(0);
@@ -261,6 +264,17 @@ public class CP2FailureDetector {
 	 */
 	private static Multicast createReliableMulticast(Multicast basicMulticast, GroupManager groupManager) {
 		return new AllToAllReliableMulticast(basicMulticast, groupManager);
+	}
+	
+	/**
+	 * Create a multicast enforcing total-order
+	 * @param reliableMulticast
+	 * @param messenger
+	 * @param groupManager
+	 * @return Totally Ordered Multicast
+	 */
+	private static Multicast createTOMulticast(Multicast reliableMulticast,Messenger messenger, GroupManager groupManager) {
+		return new IsisTotallyOrderedMC(reliableMulticast,messenger,groupManager);
 	}
 	
 	private static void waitForEveryoneToComeOnline(Messenger messenger, Model model) {

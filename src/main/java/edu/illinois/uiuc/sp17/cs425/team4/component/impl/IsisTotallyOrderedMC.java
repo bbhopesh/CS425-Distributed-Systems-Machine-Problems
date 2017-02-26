@@ -45,7 +45,7 @@ public class IsisTotallyOrderedMC implements Multicast, Application, MessageList
 	private static final String PRIORITY = "MESSAGE_PRIORITY";
 	/** message agreement keyword */
 	private static final String AGREED = "MESSAGE_AGREEMENT";
-	private static final int FIRST_ROUND_TIMEOUT = 4000;
+	private static final int FIRST_ROUND_TIMEOUT = 600;
 	
 	/** Priority comparator anonymous class implementation */
 	public static Comparator<Message> pComparator = new Comparator<Message>(){	
