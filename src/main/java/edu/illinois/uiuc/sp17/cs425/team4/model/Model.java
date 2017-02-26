@@ -71,6 +71,14 @@ public interface Model {
 	 */
 	public Message createProcessLeftMessage(Process originatingProcess, UUID uId);
 	
+	public Message createPingMessage(Process originatingProcess);
+	
+	public Message createPingMessage(Process originatingProcess, UUID uId);
+	
+	public Message createAckMessage(Process originatingProcess);
+	
+	public Message createAckMessage(Process originatingProcess, UUID uId);
+	
 	/**
 	 * Create process with provided unique id.
 	 * @param inetAddress InetAddress

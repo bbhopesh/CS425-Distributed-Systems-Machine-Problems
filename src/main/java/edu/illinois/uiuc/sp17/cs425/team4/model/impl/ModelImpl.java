@@ -68,4 +68,24 @@ public class ModelImpl implements Model {
 		return new ProcessImpl(inetAddress, port, displayName, uId);
 	}
 
+	@Override
+	public Message createPingMessage(Process originatingProcess) {
+		return new PingMessageImpl(originatingProcess);
+	}
+
+	@Override
+	public Message createPingMessage(Process originatingProcess, UUID uId) {
+		return new PingMessageImpl(originatingProcess, uId);
+	}
+
+	@Override
+	public Message createAckMessage(Process originatingProcess) {
+		return new AckMessageImpl(originatingProcess);
+	}
+
+	@Override
+	public Message createAckMessage(Process originatingProcess, UUID uId) {
+		return new AckMessageImpl(originatingProcess, uId);
+	}
+
 }

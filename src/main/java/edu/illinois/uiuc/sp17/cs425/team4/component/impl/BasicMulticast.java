@@ -46,7 +46,7 @@ public class BasicMulticast implements Multicast, MessageListener, GroupChangeLi
 		this.groupManager = groupManager;
 		this.mesenger = mesenger;
 		this.mesenger.registerListener(this);
-		this.mesenger.initialize();
+		//this.mesenger.initialize();
 		this.model = new ModelImpl();
 	}
 	
@@ -69,7 +69,7 @@ public class BasicMulticast implements Multicast, MessageListener, GroupChangeLi
 			// TODO Might want to consider sending asynchronously on different threads...
 			// ...Just an idea, didn't give it much thought yet.
 			try {
-				this.mesenger.send(Pair.of(p, m));
+				this.mesenger.send(Pair.of(p, m), 1);
 			} catch (ContextedRuntimeException e) {
 				// ignore.
 			}

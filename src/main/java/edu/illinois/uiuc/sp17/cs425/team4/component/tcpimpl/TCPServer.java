@@ -3,16 +3,13 @@ package edu.illinois.uiuc.sp17.cs425.team4.component.tcpimpl;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.log4j.Logger;
 
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageAdaptor;
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListener;
@@ -31,6 +28,7 @@ import net.jcip.annotations.NotThreadSafe;
  */
 @NotThreadSafe
 final class TCPServer implements Callable<Void> {
+	private final static Logger LOG = Logger.getLogger(TCPServer.class.getName());
 	/** Message listeners. */
 	private List<MessageListener> messageListeners;
 	/** TCP server. */
@@ -66,8 +64,6 @@ final class TCPServer implements Callable<Void> {
 	@Override
 	public Void call() {
 		try {
-			// List to keep active message notifications.
-			List<Future<Void>> pendingMessages = new LinkedList<Future<Void>>();
 			
 			while(true) {
 				/* 
@@ -78,26 +74,17 @@ final class TCPServer implements Callable<Void> {
 				*/
 				Socket connectionSocket = this.tcpServerSocket.accept();
 				Pair<Process,Message> srcAndMsg = readMessage(connectionSocket);
+				if (srcAndMsg == null) continue;
+				LOG.debug(String.format("Incoming message %s arrived from %s", srcAndMsg.getRight().getUUID(), srcAndMsg.getLeft().getDisplayName()));
 				ResponseWriter responseWriter = createResponseWriter(connectionSocket);
 				// Listener to whom this message should be routed to.
 				MessageListener listener = getListener(srcAndMsg);
 				// notify listener on different thread.
 				Callable<Void> messageListenerWrapper = 
 						new MessageListenerWrapper(listener, srcAndMsg, responseWriter);
-				Future<Void> future = this.threadPool.submit(messageListenerWrapper);
-				// Add to list of pending listeners.
-				pendingMessages.add(future);
-				// check for failures and remove listeners that are already done.
-				checkFailures(pendingMessages);
+				this.threadPool.submit(messageListenerWrapper);
 			} 
 		} catch (IOException e) {
-			//e.printStackTrace();
-			throw new ContextedRuntimeException(e);
-		} catch (InterruptedException e) {
-			//e.printStackTrace();
-			Thread.currentThread().interrupt(); // so that code up stack trace is aware of interrupt.
-			throw new ContextedRuntimeException(e);
-		} catch (ExecutionException e) {
 			//e.printStackTrace();
 			throw new ContextedRuntimeException(e);
 		} catch (Exception e) {
@@ -107,29 +94,11 @@ final class TCPServer implements Callable<Void> {
 
 	}
 	
+	
 	public void setMessageListeners(List<MessageListener> listeners) {
 		this.messageListeners = listeners;
 	}
 	
-	/**
-	 * Check for failures and remove completed futures.
-	 * @param pendingResponses Responses that were pending till last check.
-	 * @throws InterruptedException if interrupted.
-	 * @throws ExecutionException if future had failed.
-	 */
-	private void checkFailures(List<Future<Void>> pendingResponses) 
-			throws InterruptedException, ExecutionException {
-		Iterator<Future<Void>> it = pendingResponses.iterator();
-		while (it.hasNext()) {
-			Future<Void> listenerFut = it.next();
-			if (listenerFut.isDone()) {
-				it.remove();
-				// get is called so that if there was any error, it could throw that exception.
-				listenerFut.get();
-			}
-		}
-		
-	}
 
 	/**
 	 * Creates a TCP server.
@@ -215,7 +184,6 @@ final class TCPServer implements Callable<Void> {
 			
 			return null;
 		}
-		
 	}
 
 }

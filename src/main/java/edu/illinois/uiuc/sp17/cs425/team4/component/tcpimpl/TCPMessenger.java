@@ -10,6 +10,7 @@ import java.util.concurrent.Future;
 
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.log4j.Logger;
 
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageAdaptor;
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListener;
@@ -33,6 +34,7 @@ import net.jcip.annotations.ThreadSafe;
  */
 @ThreadSafe
 final class TCPMessenger implements Messenger {
+	private final static Logger LOG = Logger.getLogger(TCPMessenger.class.getName());
 	private final TCPServer tcpServer;
 	/** Executor service to submit new threads to. */
 	private final ExecutorService threadPool;
@@ -83,16 +85,23 @@ final class TCPMessenger implements Messenger {
 	}
 	
 	@Override
-	public Message send(Pair<Process, Message> dstnAndMsg) {
+	public Message send(Pair<Process, Message> dstnAndMsg, int timeout) {
 		checkForFailure();
+		// Thread safety on this message relies on the thread safety of message adaptor.
 		try {
 			// Open socket with destination.
 			Process p = dstnAndMsg.getLeft();
 			Socket s = new Socket(p.getInetAddress(), p.getPort());
+			// set timeout.
+			s.setSoTimeout(timeout);
+			LOG.debug(String.format("Sending message %s with a timeout of %s ms to %s", dstnAndMsg.getRight().getUUID(), timeout, dstnAndMsg.getLeft().getDisplayName()));
 			// Send destination the message and tell them who sent it.
 			this.messageAdaptor.write(s, Pair.of(this.myIdentity, dstnAndMsg.getRight()));
 			// Read response back and ignore source of this msg as source of the response msg will be destination of original msg.
 			Pair<Process, Message> srcAndMsg = this.messageAdaptor.read(s);
+			if (srcAndMsg == null) {
+				LOG.debug(String.format("No reply for message %s from %s", dstnAndMsg.getRight().getUUID(),  dstnAndMsg.getLeft().getDisplayName()));
+			}
 			s.close();
 			return srcAndMsg == null ? null: srcAndMsg.getRight();
 		} catch (IOException e) {
@@ -101,7 +110,7 @@ final class TCPMessenger implements Messenger {
 					e);
 		}
 	}
-	
+
 
 	@Override
 	public boolean registerListener(MessageListener listener) {
