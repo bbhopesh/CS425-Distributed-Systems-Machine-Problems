@@ -1,13 +1,19 @@
 package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
 
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.PriorityQueue;
+import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.apache.commons.lang3.tuple.Pair;
 
 import edu.illinois.uiuc.sp17.cs425.team4.component.Application;
+import edu.illinois.uiuc.sp17.cs425.team4.component.GroupChangeListener;
 import edu.illinois.uiuc.sp17.cs425.team4.component.GroupManager;
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListenerIdentifier;
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListener;
@@ -15,16 +21,19 @@ import edu.illinois.uiuc.sp17.cs425.team4.component.Messenger;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Multicast;
 import edu.illinois.uiuc.sp17.cs425.team4.component.ResponseWriter;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
+import edu.illinois.uiuc.sp17.cs425.team4.model.Model;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
+import edu.illinois.uiuc.sp17.cs425.team4.model.impl.ModelImpl;
 
-public class IsisTotallyOrderedMC implements Multicast, Application, MessageListener {
+public class IsisTotallyOrderedMC implements Multicast, Application, MessageListener,GroupChangeListener {
 	
 	/** Listener Identifier. */
 	private static final String S_IDENTIFIER = "IsisTotallyOrderedMC";
 	/** Listener Identifier. */
 	private static final MessageListenerIdentifier IDENTIFIER = 
 			new MessageListenerIdentifierImpl(S_IDENTIFIER);
-	
+	/** Model. */
+	private final Model model;
 	/** Group Manager. Used for staying up to date about group members.*/
 	private final GroupManager groupManager;
 	/** Basic (unreliable) multicast on which this multicast is built. */
@@ -35,6 +44,8 @@ public class IsisTotallyOrderedMC implements Multicast, Application, MessageList
 	private final Messenger messenger;
 	/** a priority queue used to store the messages before deliver it */
 	PriorityQueue<Message> holdBackQueue;
+	/** a set containing failed processes to examine duplicate */
+	private Set<Process> failedProcesses;
 	/** largest agreed sequence number */
 	private int largestAgreedNum;
 	/** largest proposed sequence number*/
@@ -77,6 +88,8 @@ public class IsisTotallyOrderedMC implements Multicast, Application, MessageList
 		this.messenger = messenger;
 		this.messenger.registerListener(this);
 		this.holdBackQueue =  new PriorityQueue<Message>(pComparator);
+		this.model = new ModelImpl();
+		this.failedProcesses = new HashSet<Process>();
 	}
 	
 
@@ -91,13 +104,12 @@ public class IsisTotallyOrderedMC implements Multicast, Application, MessageList
 			try {
 				// timeout added by Bhopesh, Randolph needs to think what to do in case message times out.
 				Message replied = this.messenger.send(Pair.of(p, m), FIRST_ROUND_TIMEOUT);
-				if(replied == null) {
-					System.err.println("received null message");
-				}
-				int compareRes = pComparator.compare(m, replied);
-				if(compareRes < 0) {
-					Pair<String, Integer> newPriority  =  replied.getMetadata().get(clazz, PRIORITY);
-					m.getMetadata().setProperty(PRIORITY, Pair.of(newPriority.getLeft(), newPriority.getRight()));	
+				if(replied != null) {
+					int compareRes = pComparator.compare(m, replied);
+					if(compareRes < 0) {
+						Pair<String, Integer> newPriority  =  replied.getMetadata().get(clazz, PRIORITY);
+						m.getMetadata().setProperty(PRIORITY, Pair.of(newPriority.getLeft(), newPriority.getRight()));	
+					}					
 				}
 			} catch (ContextedRuntimeException e) {
 				// the another end might failed, need to figure out a way to multicast this message
@@ -164,6 +176,68 @@ public class IsisTotallyOrderedMC implements Multicast, Application, MessageList
 	public MessageListenerIdentifier getIdentifier() {
 		// TODO Auto-generated method stub
 		return IDENTIFIER;
+	}
+
+
+	@Override
+	public void processJoined(Process j) {
+		// TODO Auto-generated method stub
+		Message message = model.createProcessJoinedMessage(this.groupManager.getMyIdentity());
+		message.setMessageListenerId(IDENTIFIER);
+		this.registeredApplication.deliver(
+				Pair.of(j, message));		
+		
+	}
+
+
+	/**
+	 * According to the MP requirement, the failure message doesn't need to be totally
+	 * ordered, but has to be later than the last message from the failed process
+	 * The last message can either be send after first round or second round
+	 * if after a long enough time period, there is still msg from failed process
+	 * we can safely remove it to preventing blocking of normal message  
+	 */
+	@Override
+	public void processLeft(Process l) {
+		// failure msg might be duplicate
+		if(this.failedProcesses.contains(l)) {
+			return;
+		}else {
+			this.failedProcesses.add(l);
+		}
+		Timer timer = new Timer();
+		timer.schedule(new TimerTask() {
+			@Override
+			public void run() {
+				Message message = model.createProcessLeftMessage(groupManager.getMyIdentity());
+				message.setMessageListenerId(IDENTIFIER);
+				boolean noMsgFromFailedProcess = true;
+				int priority = -1;
+				synchronized(holdBackQueue) {
+					Iterator<Message> it = holdBackQueue.iterator();
+					while(it.hasNext()) {
+						Message msg = (Message) it.next();
+						if(msg.getOriginatingSource().equals(l)) {
+							if(!msg.getMetadata().getBoolean(AGREED)) {
+								it.remove();
+							}else {
+								noMsgFromFailedProcess = false;
+								Pair<String, Integer> P = msg.getMetadata().get(clazz, PRIORITY);
+								priority = P.getRight().intValue() + 1;	
+							}
+						}
+					}
+				}		
+				if(noMsgFromFailedProcess) {
+					registeredApplication.deliver(
+							Pair.of(l, message));	
+				}else {
+					message.getMetadata().setProperty(AGREED, new Boolean(true));
+					message.getMetadata().setProperty(PRIORITY,Pair.of(groupManager.getMyIdentity().getDisplayName(),new Integer(priority)));	
+					holdBackQueue.add(message);
+				}				
+			}
+		}, 2*FIRST_ROUND_TIMEOUT);
 	}
 
 }

@@ -252,7 +252,7 @@ public class CP2FailureDetector {
 	 */
 	private static Multicast createBasicMulticast(GroupManager groupManager, Messenger messenger) {
 		BasicMulticast bmc = new BasicMulticast(groupManager, messenger);
-		groupManager.registerGroupChangeListener(bmc);
+		//groupManager.registerGroupChangeListener(bmc);
 		return bmc;
 	}
 	
@@ -274,7 +274,9 @@ public class CP2FailureDetector {
 	 * @return Totally Ordered Multicast
 	 */
 	private static Multicast createTOMulticast(Multicast reliableMulticast,Messenger messenger, GroupManager groupManager) {
-		return new IsisTotallyOrderedMC(reliableMulticast,messenger,groupManager);
+		IsisTotallyOrderedMC totalMC = new IsisTotallyOrderedMC(reliableMulticast,messenger,groupManager);
+		groupManager.registerGroupChangeListener(totalMC);
+		return totalMC;
 	}
 	
 	private static void waitForEveryoneToComeOnline(Messenger messenger, Model model) {
