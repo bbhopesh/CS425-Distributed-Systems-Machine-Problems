@@ -3,15 +3,25 @@ package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
 import java.io.Serializable;
 
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListenerIdentifier;
+import net.jcip.annotations.Immutable;
 
+/**
+ * A very basic immutable implementation of the message listener.
+ * 
+ * @author bbassi2
+ */
+@Immutable
 public class MessageListenerIdentifierImpl implements MessageListenerIdentifier, Serializable {
 	
-	/**
-	 * 
-	 */
+	/** Serial version id. */
 	private static final long serialVersionUID = -3040873711857588605L;
+	/** Identifier. */
 	private final String identifier;
 	
+	/**
+	 * Create an instance.
+	 * @param identifier Identifier.
+	 */
 	public MessageListenerIdentifierImpl(String identifier) {
 		this.identifier =  identifier;
 	}
@@ -45,7 +55,4 @@ public class MessageListenerIdentifierImpl implements MessageListenerIdentifier,
 			return false;
 		return true;
 	}
-	
-	
-
 }

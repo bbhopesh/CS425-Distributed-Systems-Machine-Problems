@@ -71,12 +71,34 @@ public interface Model {
 	 */
 	public Message createProcessLeftMessage(Process originatingProcess, UUID uId);
 	
+	/**
+	 * Create a ping message with random uuid.
+	 * @param originatingProcess Originator of the message.
+	 * @return ping message.
+	 */
 	public Message createPingMessage(Process originatingProcess);
 	
+	/**
+	 * Create a ping message with provided uuid.
+	 * @param originatingProcess Originator of the message.
+	 * @param uId Unique identifier of the message.
+	 * @return ping message.
+	 */
 	public Message createPingMessage(Process originatingProcess, UUID uId);
 	
+	/**
+	 * Create ack message with random id.
+	 * @param originatingProcess Originator of the message.
+	 * @return ack message.
+	 */
 	public Message createAckMessage(Process originatingProcess);
 	
+	/**
+	 * Create ack message with provided  uuid.
+	 * @param originatingProcess Originator of the message.
+	 * @param uId Unique identifier of the message.
+	 * @return ack message.
+	 */
 	public Message createAckMessage(Process originatingProcess, UUID uId);
 	
 	/**

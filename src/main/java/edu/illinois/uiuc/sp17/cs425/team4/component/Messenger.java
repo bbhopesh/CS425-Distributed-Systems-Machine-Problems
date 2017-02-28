@@ -26,7 +26,6 @@ public interface Messenger {
 	 * @return The reply of the sent message.
 	 * @throws ContexedRuntimeException if there is a problem in sending the message.
 	 */
-	// TODO Add timeout argument to send.
 	public Message send(Pair<Process, Message> dstnAndMsg, int timeout) throws ContextedRuntimeException;
 	
 	

@@ -33,33 +33,54 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import edu.illinois.uiuc.sp17.cs425.team4.model.impl.ModelImpl;
 import net.jcip.annotations.GuardedBy;
 
+/**
+ * SWIM style failure detector without indirect pings but k-random direct pings.
+ * 
+ * @author bbassi2
+ */
 public class SWIMFailureDetectorV2 implements GroupManager, MessageListener, Callable<Void> {
-	private final static Logger LOG = Logger.getLogger(SWIMFailureDetector.class.getName());
+	/**  Logger. */
+	private final static Logger LOG = Logger.getLogger(SWIMFailureDetectorV2.class.getName());
 	/** Listener Identifier. */
 	private static final String S_IDENTIFIER = "SwimV2FailureDetector";
 	/** Listener Identifier. */
 	private static final MessageListenerIdentifier IDENTIFIER = 
 			new MessageListenerIdentifierImpl(S_IDENTIFIER);
+	/** Message prop indicating the failed process. */
 	private static final String FAILED_PROCESSES_PROP = S_IDENTIFIER  + " FailedProcesses";
+	/**  My identity. */
 	private final Process myIdentity;
+	/** Set of group members. */
 	private final Set<Process> groupMembers;
+	/** Messenger. */
 	private final Messenger messenger;
+	/** List of listeners that are should be notified on group change. */
 	private final List<GroupChangeListener> groupChangeListeners;
+	/** Mapping of failed processes to the protocol period in which the failure was detected. */
 	private final ConcurrentMap<Process,Integer> failures;
-	
+	/** Wait time in ms for acknowledgement. */
 	private final int ackTimeout;
 	/** Model. */
 	private final Model model;
+	/** Thread pool. */
 	private final ExecutorService threadPool;
-	 
+	/** Length of protocol period is ms. */
 	private final int protocolPeriod;
+	/** 
+	 * Minimum length of protocol period as fraction of protocol period.
+	 * If all tasks are done before this time, we still wait for this much time before proceeding to next round.
+	 */
 	private final double minProtocolPeriod;
+	/** Minimum length of protocol period in ms. */
 	private final int minTimeForProtocolPeriod;
+	/** Number of pings. */
 	private final int pingTargets;
-	
+	/** Number of protocol periods elapsed. */
 	@GuardedBy("this")
 	private int protocolPeriodsElapsed;
+	/** Scheduler. */
 	private ScheduledFuture<?> gcService;
+	/** Future representing status of protocol. */
 	private Future<Void> groupManagerService;
 	
 	
@@ -88,10 +109,19 @@ public class SWIMFailureDetectorV2 implements GroupManager, MessageListener, Cal
 		this.model = new ModelImpl();
 	}
 	
+	/**
+	 * Calculate minimum duration of protocol period.
+	 * @return minimum duration of protocol period.
+	 */
 	private int calulateMinTimeForProtocolPeriod() {
 		return (int) (this.minProtocolPeriod*this.protocolPeriod);
 	}
 
+	/**
+	 * Initialize group members.
+	 * @param groupMembers group members.
+	 * @return initialized group members.
+	 */
 	private Set<Process> initializeGroupMembers(Set<Process> groupMembers) {
 		// Thread safe group members because accessed on many threads.
 		Map<Process, Boolean> groupMap =  new ConcurrentHashMap<>(groupMembers.size());
@@ -105,7 +135,9 @@ public class SWIMFailureDetectorV2 implements GroupManager, MessageListener, Cal
 		this.groupManagerService = this.threadPool.submit(this);
 	}
 	
-	
+	/**
+	 * Runs protocol period in infinite loop which can be broken by interrupting.
+	 */
 	@Override
 	public Void call() throws InterruptedException {
 		// Keep running protocol and stop when interrupted.
@@ -133,11 +165,17 @@ public class SWIMFailureDetectorV2 implements GroupManager, MessageListener, Cal
 		}
 	}
 	
-	
+	/**
+	 * Increments protocol periods elapsed.
+	 */
 	private synchronized void incrementProtocolPeriodNumber() {
 		this.protocolPeriodsElapsed++;
 	}
 	
+	/**
+	 * Get current protocol period number.
+	 * @return Current protocol period number.
+	 */
 	private synchronized int getProtocolPeriodNumber() {
 		return this.protocolPeriodsElapsed;
 	}
@@ -191,6 +229,11 @@ public class SWIMFailureDetectorV2 implements GroupManager, MessageListener, Cal
 		}
 	}*/
 	
+	/**
+	 * Performs task of one protocol period.
+	 * Picks k processes at random and pings.
+	 * If ack is received from any process, that is marked a failed.
+	 */
 	private void protocolPeriod() {
 		// Action are implemented only for a single protocol period.
 		// This function should be called periodically.
@@ -213,6 +256,10 @@ public class SWIMFailureDetectorV2 implements GroupManager, MessageListener, Cal
 		}
 	}
 	
+	/**
+	 * Mark the given process failed.
+	 * @param failure Failed process.
+	 */
 	private void markAsFailed(Process failure) {
 		// Add to queue of failed processes.
 		Integer protocolPeriodOfFailure = this.failures.putIfAbsent(failure, getProtocolPeriodNumber());
@@ -225,12 +272,23 @@ public class SWIMFailureDetectorV2 implements GroupManager, MessageListener, Cal
 		}
 	}
 
+	/**
+	 * Inform listeners about the process failure.
+	 * @param failure Failed process.
+	 */
 	private void informListeners(Process failure) {
 		for (GroupChangeListener listener: this.groupChangeListeners) {
 			listener.processLeft(failure);
 		}
 	}
 	
+	/**
+	 * Ping the provided process with given timeout.
+	 * @param pingMessage Ping message.
+	 * @param process Process to be pinged.
+	 * @param timeout time to wait for ack.
+	 * @return Ack message.
+	 */
 	private Message pingProcess(Message pingMessage, Process process, int timeout) {
 		Message response = null;
 		try {

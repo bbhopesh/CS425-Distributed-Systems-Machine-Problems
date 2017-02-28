@@ -35,7 +35,9 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import edu.illinois.uiuc.sp17.cs425.team4.model.impl.ModelImpl;
 
 /**
- * Main class to demo CP1.
+ * Main class to demo CP2.
+ * 
+ * This is an old class. Use CP2FailureDetector instead.
  * 
  * @author bbassi2
  */

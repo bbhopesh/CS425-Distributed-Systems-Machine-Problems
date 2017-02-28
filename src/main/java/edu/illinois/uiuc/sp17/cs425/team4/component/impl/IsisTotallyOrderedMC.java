@@ -25,6 +25,12 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.Model;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import edu.illinois.uiuc.sp17.cs425.team4.model.impl.ModelImpl;
 
+/**
+ * Totally ordered multicast protocol implementing ISIS algorithm.
+ * This class also registers itself on the failure detector to listen to failure messages.
+ * 
+ * @author zzeng9
+ */
 public class IsisTotallyOrderedMC implements Multicast, Application, MessageListener,GroupChangeListener {
 	
 	/** Listener Identifier. */
@@ -51,6 +57,7 @@ public class IsisTotallyOrderedMC implements Multicast, Application, MessageList
 	/** largest proposed sequence number*/
 	private int largestProposedNum;
 	/** Priority class type, use to query in metadate*/
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private static final Class<Pair<String, Integer>> clazz = (Class) Pair.class;
 	/** message priority keyword */
 	private static final String PRIORITY = "MESSAGE_PRIORITY";
@@ -62,7 +69,6 @@ public class IsisTotallyOrderedMC implements Multicast, Application, MessageList
 	public static Comparator<Message> pComparator = new Comparator<Message>(){	
 		@Override
 		public int compare(Message c1, Message c2) {
-			// TODO Auto generated.
 			if(c1 == null || c2 == null) {
 				throw new IllegalArgumentException("message to compare should not be null ");
 			}
@@ -95,7 +101,6 @@ public class IsisTotallyOrderedMC implements Multicast, Application, MessageList
 
 	@Override
 	public void multicast(Message m) {
-		// TODO Auto-generated method stub
 		m.setMessageListenerId(IDENTIFIER);
 		m.getMetadata().setProperty(AGREED, new Boolean(false));
 		m.getMetadata().setProperty(PRIORITY,Pair.of(this.groupManager.getMyIdentity().getDisplayName(),new Integer(-1)));	
@@ -164,7 +169,6 @@ public class IsisTotallyOrderedMC implements Multicast, Application, MessageList
 
 	@Override
 	public boolean registerApplication(Application application) {
-		// TODO Auto-generated method stub
 		if (this.registeredApplication != null) {
 			throw new ContextedRuntimeException("Application can only be registered once.");
 		}
@@ -174,14 +178,12 @@ public class IsisTotallyOrderedMC implements Multicast, Application, MessageList
 
 	@Override
 	public MessageListenerIdentifier getIdentifier() {
-		// TODO Auto-generated method stub
 		return IDENTIFIER;
 	}
 
 
 	@Override
 	public void processJoined(Process j) {
-		// TODO Auto-generated method stub
 		Message message = model.createProcessJoinedMessage(this.groupManager.getMyIdentity());
 		message.setMessageListenerId(IDENTIFIER);
 		this.registeredApplication.deliver(

@@ -36,25 +36,40 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import edu.illinois.uiuc.sp17.cs425.team4.model.impl.ModelImpl;
 import net.jcip.annotations.GuardedBy;
 
+/**
+ * SWIM style failure detector.
+ * 
+ * @author bbassi2
+ */
 public class SWIMFailureDetector implements GroupManager, MessageListener, Callable<Void> {
+	/**  Logger. */
 	private final static Logger LOG = Logger.getLogger(SWIMFailureDetector.class.getName());
 	/** Listener Identifier. */
 	private static final String S_IDENTIFIER = "SWIMFailureDetector";
 	/** Listener Identifier. */
 	private static final MessageListenerIdentifier IDENTIFIER = 
 			new MessageListenerIdentifierImpl(S_IDENTIFIER);
+	/** Message prop indicating if the message is indirect ping. */
 	private static final String INDIRECT_PING_PROP = S_IDENTIFIER + " IndirectPing";
+	/** Message prop indicating the failed process. */
 	private static final String FAILED_PROCESSES_PROP = S_IDENTIFIER  + " FailedProcesses";
+	/**  My identity. */
 	private final Process myIdentity;
+	/** Set of group members. */
 	private final Set<Process> groupMembers;
+	/** Initial size of the group. */
 	private final int initialSize;
+	/** Messenger. */
 	private final Messenger messenger;
+	/** List of listeners that are should be notified on group change. */
 	private final List<GroupChangeListener> groupChangeListeners;
+	/** Mapping of failed processes to the protocol period in which the failure was detected. */
 	private final ConcurrentMap<Process,Integer> failures;
-	/** Wait time for direct acknowledgement as a fraction of protocol period. */
+	/** Wait time in ms for direct acknowledgement. This should be substantially smaller than protocol period. */
 	private final int ackWaitTime = 50;
 	/** Model. */
 	private final Model model;
+	/** Thread pool. */
 	private final ExecutorService threadPool;
 	/**
 	 * If we use piggybacked messages on top of ping-ack to disseminate failure detections,
@@ -63,14 +78,23 @@ public class SWIMFailureDetector implements GroupManager, MessageListener, Calla
 	 * experimentally after trying various values. 
 	 */
 	private final int lambda;
+	/** Length of protocol period is ms. */
 	private final int protocolPeriod;
+	/** 
+	 * Minimum length of protocol period as fraction of protocol period.
+	 * If all tasks are done before this time, we still wait for this much time before proceeding to next round.
+	 */
 	private final double minProtocolPeriod;
+	/** Minimum length of protocol period in ms. */
 	private final int minTimeForProtocolPeriod;
+	/** Number of indirect pings. */
 	private final int indirectPingTargetCount;
-	
 	@GuardedBy("this")
+	/** Number of protocol periods elapsed. */
 	private int protocolPeriodsElapsed;
+	/** Scheduler. */
 	private ScheduledFuture<?> gcService;
+	/** Future representing status of protocol. */
 	private Future<Void> groupManagerService;
 	
 
@@ -99,10 +123,19 @@ public class SWIMFailureDetector implements GroupManager, MessageListener, Calla
 		this.model = new ModelImpl();
 	}
 	
+	/**
+	 * Calculate minimum duration of protocol period.
+	 * @return minimum duration of protocol period.
+	 */
 	private int calulateMinTimeForProtocolPeriod() {
 		return (int) (this.minProtocolPeriod*this.protocolPeriod);
 	}
 
+	/**
+	 * Initialize group members.
+	 * @param groupMembers group members.
+	 * @return initialized group members.
+	 */
 	private Set<Process> initializeGroupMembers(Set<Process> groupMembers) {
 		// Thread safe group members because accessed on many threads.
 		Map<Process, Boolean> groupMap =  new ConcurrentHashMap<>(groupMembers.size());
@@ -126,7 +159,9 @@ public class SWIMFailureDetector implements GroupManager, MessageListener, Calla
 				delay, interval, TimeUnit.MILLISECONDS);
 	}
 	
-	
+	/**
+	 * Runs protocol period in infinite loop which can be broken by interrupting.
+	 */
 	@Override
 	public Void call() throws InterruptedException {
 		// Keep running protocol and stop when interrupted.
@@ -154,16 +189,29 @@ public class SWIMFailureDetector implements GroupManager, MessageListener, Calla
 		}
 	}
 	
-	
+	/**
+	 * Increments protocol periods elapsed.
+	 */
+	@GuardedBy("this")
 	private synchronized void incrementProtocolPeriodNumber() {
 		this.protocolPeriodsElapsed++;
 	}
 	
+	/**
+	 * Get current protocol period number.
+	 * @return Current protocol period number.
+	 */
 	private synchronized int getProtocolPeriodNumber() {
 		return this.protocolPeriodsElapsed;
 	}
 	
-	
+	/**
+	 * Performs task of one protocol period.
+	 * Picks a process at random and pings.
+	 * If ack is received then does nothing for remainder of protocol.
+	 * If ack is not received, then pings the process indirectly via k-other processes.
+	 * Even if an indirect ack is not received, then process is marked as failed.
+	 */
 	private void protocolPeriod() {
 		// Action are implemented only for a single protocol period.
 		// This function should be called periodically.
@@ -198,6 +246,10 @@ public class SWIMFailureDetector implements GroupManager, MessageListener, Calla
 		}
 	}
 	
+	/**
+	 * Mark the given process failed.
+	 * @param failure Failed process.
+	 */
 	private void markAsFailed(Process failure) {
 		// Add to queue of failed processes.
 		Integer protocolPeriodOfFailure = this.failures.putIfAbsent(failure, getProtocolPeriodNumber());
@@ -210,12 +262,21 @@ public class SWIMFailureDetector implements GroupManager, MessageListener, Calla
 		}
 	}
 
+	/**
+	 * Inform listeners about the process failure.
+	 * @param failure Failed process.
+	 */
 	private void informListeners(Process failure) {
 		for (GroupChangeListener listener: this.groupChangeListeners) {
 			listener.processLeft(failure);
 		}
 	}
-
+	
+	/**
+	 * Uses the future to check if we received indirect ping.
+	 * @param indirectPing Indirect ping.
+	 * @return true if indirect ping is received.
+	 */
 	private boolean receivedIndirectAck(Future<Message> indirectPing) {
 		try {
 			Message indirectPingReply = indirectPing.get();
@@ -230,6 +291,10 @@ public class SWIMFailureDetector implements GroupManager, MessageListener, Calla
 		} catch (Exception e) {return false;} // ignore. can never reach here. Our callable catches all exceptions and returns null instead.
 	}
 	
+	/**
+	 * Picks ping target randomly.
+	 * @return randomly chosen ping target.
+	 */
 	private Process pickPingTarget() {
 		// Randomly shuffle and pick one element to ping.
 		List<Process> groupMembersList = new ArrayList<Process>(this.groupMembers);
@@ -244,6 +309,13 @@ public class SWIMFailureDetector implements GroupManager, MessageListener, Calla
 		}
 	}
 	
+	/**
+	 * Ping the provided process with given timeout.
+	 * @param pingMessage Ping message.
+	 * @param process Process to be pinged.
+	 * @param timeout time to wait for ack.
+	 * @return Ack message.
+	 */
 	private Message pingProcess(Message pingMessage, Process process, int timeout) {
 		Message response = null;
 		try {
@@ -254,6 +326,12 @@ public class SWIMFailureDetector implements GroupManager, MessageListener, Calla
 		return response;
 	}
 	
+	/**
+	 * Performs k indirect pings and returns futures representing status of ping.
+	 * @param target the target process for which indirect ping is intended.
+	 * @param k k.
+	 * @return Futures representing status of ping.
+	 */
 	private List<Future<Message>> kIndirectPings(Process target, int k) {
 		// Pick peers who will send indirect ping to target
 		List<Process> kRandomPeers = kRandomPeers(k,target);
@@ -273,6 +351,7 @@ public class SWIMFailureDetector implements GroupManager, MessageListener, Calla
 		}
 		return indirectPingFuts;
 	}
+	
 	
 	private Callable<Message> createIndirectPingCallable(
 			Process target, Process via) {

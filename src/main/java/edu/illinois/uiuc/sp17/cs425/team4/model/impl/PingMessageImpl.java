@@ -5,6 +5,11 @@ import java.util.UUID;
 
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 
+/**
+ * An implementation of ping message.
+ * 
+ * @author bbassi2.
+ */
 class PingMessageImpl extends MessageBaseImpl implements Serializable {
 
 	/**

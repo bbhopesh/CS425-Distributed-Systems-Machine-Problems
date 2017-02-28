@@ -11,13 +11,20 @@ import edu.illinois.uiuc.sp17.cs425.team4.component.ResponseWriter;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 
-public class TCPResponseWriter implements ResponseWriter{
+/**
+ * A response writer implementation for TCP.
+ * 
+ * @author bbassi2
+ */
+public class TCPResponseWriter implements ResponseWriter {
+	/**  Message adaptor. */
 	private final MessageAdaptor messageAdaptor;
+	/** Tcp socket to write repl to. */
 	private final Socket tcpSocket;
+	/**  My identity. */
 	private final Process myIdentity;
 	
-	
-	
+
 	public TCPResponseWriter(MessageAdaptor messageAdaptor, Socket tcpSocket,
 			Process myIdentity) {
 		this.messageAdaptor = messageAdaptor;
@@ -46,7 +53,6 @@ public class TCPResponseWriter implements ResponseWriter{
 			this.tcpSocket.close();
 		} catch (IOException e) {
 			// ignore
-			// TODO Add log4j and print exception in debug mode.
 		}
 	}
 }

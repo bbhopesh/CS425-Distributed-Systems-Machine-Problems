@@ -36,5 +36,8 @@ public interface GroupManager {
 	 */
 	public boolean registerGroupChangeListener(GroupChangeListener groupChangeListener);
 	
+	/**
+	 * Close Group Manager.
+	 */
 	public void close();
 }

@@ -30,10 +30,8 @@ import edu.illinois.uiuc.sp17.cs425.team4.util.IOUtils;
  *
  */
 public class TCPMessageAdaptor implements MessageAdaptor {
+	/** Logger. */
 	private final static Logger LOG = Logger.getLogger(TCPMessageAdaptor.class.getName());
-	/** Socket timeout to be used by read method. */
-	// TODO take timeout from outside or deal with this problem in a better way..
-	// ... haven't given a lot of thought as of now.
 	
 	@Override
 	public Pair<Process, Message> read(Object conn) {

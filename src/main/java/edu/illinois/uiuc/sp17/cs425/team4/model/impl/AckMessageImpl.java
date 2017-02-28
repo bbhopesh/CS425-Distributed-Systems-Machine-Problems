@@ -5,6 +5,11 @@ import java.util.UUID;
 
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 
+/**
+ * Implementation of ack message.
+ * 
+ * @author bbassi2
+ */
 class AckMessageImpl extends MessageBaseImpl implements Serializable {
 
 	/**

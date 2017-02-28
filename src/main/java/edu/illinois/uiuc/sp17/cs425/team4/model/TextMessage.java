@@ -6,5 +6,9 @@ package edu.illinois.uiuc.sp17.cs425.team4.model;
  * @author bbassi2
  */
 public interface TextMessage extends Message {
+	/**
+	 * Get text.
+	 * @return text of the message.
+	 */
 	public String getText();
 }
