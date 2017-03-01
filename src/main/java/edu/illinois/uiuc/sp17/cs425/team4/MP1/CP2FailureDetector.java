@@ -66,6 +66,7 @@ public class CP2FailureDetector {
 	private static final String SWIM2_PROTOCOL_MIN_PERIOD = "swimV2.protocol.min.period";
 	private static final String SWIM2_PING_TARGETS = "swimV2.ping.targets";
 	private static final String SWIM2_ACK_TIMEOUT = "swimV2.ack.timeout";
+	private static final String ISIS_FIRST_ROUND_TIMEOUT = "isis.first.round.timeout";
 	
 	/** Short and long name of peer count option. */
 	private static Pair<String,String> peerCountOption = Pair.of("c", "peerCount");
@@ -274,7 +275,8 @@ public class CP2FailureDetector {
 	 * @return Totally Ordered Multicast
 	 */
 	private static Multicast createTOMulticast(Multicast reliableMulticast,Messenger messenger, GroupManager groupManager) {
-		IsisTotallyOrderedMC totalMC = new IsisTotallyOrderedMC(reliableMulticast,messenger,groupManager);
+		int firstRoundTimeout = Integer.valueOf(config.getProperty(ISIS_FIRST_ROUND_TIMEOUT));
+		IsisTotallyOrderedMC totalMC = new IsisTotallyOrderedMC(reliableMulticast,messenger,groupManager, firstRoundTimeout);
 		groupManager.registerGroupChangeListener(totalMC);
 		return totalMC;
 	}

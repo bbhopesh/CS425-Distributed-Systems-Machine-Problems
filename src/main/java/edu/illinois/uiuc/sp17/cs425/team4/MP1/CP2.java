@@ -228,6 +228,6 @@ public class CP2 {
 	 * @return Totally Ordered Multicast
 	 */
 	private static Multicast createTOMulticast(Multicast reliableMulticast,Messenger messenger, GroupManager groupManager) {
-		return new IsisTotallyOrderedMC(reliableMulticast,messenger,groupManager);
+		return new IsisTotallyOrderedMC(reliableMulticast,messenger,groupManager,4000);
 	}
 }
