@@ -4,25 +4,15 @@ This project implements a chat system that supports **totally ordered multicast*
 # Building
 1. Git clone this repo into a local directory.
 
-2. cd to project home directory and run ./gradlew clean build
+2. cd to project home directory and run sh transfer-binary.sh USERNAME VM_NUMS. This shell script will build the application and transfer the built tar file to VM_NUMS of virtual machines assigned to our group(gourp 4).It will also untar the files on the root directory of the VM. Note this script requires you to automate login process using ssh-copy-id id@server. If you can't automatically login your cluster, then go to step three. Otherwise go to step 6. 
 
-3. A build folder will be then created in the home directory. cd to /build/distribution. Use scp to transfer the CS425-MP1.tar file into the VMs you wish to be deployed on 
+3. run ./gradlew clean build
 
-4. ssh into the virtual machines and untar the CS425-MP1.tar files. A lib folder will be created
+4. A build folder will be then created in the home directory. cd to /build/distribution. Use scp to transfer the CS425-MP1.tar file into the VMs you wish to be deployed on 
 
-5. cd to /lib and run java -cp "*"  edu.illinois.uiuc.sp17.cs425.team4.MP1.CP1 -peerCount <clientNumber> -myName <username> -outputFile <file.txt>. Replace <clientNumber> with the number of clients you wish to add and replace <username> with A-J, each corresponding to a VM from g04-01 to g04-10. __The flag -outputFile <file.txt> is optional, if you do not input this option, the message will be print into the terminal__. If you input this option, all the message will be written into a text file you specified. Replace <file.txt> with a text file name 
+5. ssh into the virtual machines and untar the CS425-MP1.tar files. A lib folder will be created
 
-6. If you wish to see the messages in real time under a typical chat app user interface, replace the following commands with step 5. Otherwise, go to step 7
-
-	I.type tmux to start a new tmux session
-
-	II. run java -cp "*"  edu.illinois.uiuc.sp17.cs425.team4.MP1.CP1 -peerCount <clientNumber> -myName <username> -outputFile <file.txt>
-
-	III. hit ctrl and b at the same time, followed by a double quotation makr ". This will split the terminal horizontally for you
-
-	IV. type tmux swap-pane -U to move the new terminal up
-
-	V. type tail -f <file.txt>, replace <file.txt> with the file you specified above to display real time chat messages 
+6. cd to /lib and run java -cp "*"  edu.illinois.uiuc.sp17.cs425.team4.MP1.CP2 -peerCount <clientNumber> -outputFile <file.txt>. Replace <clientNumber> with the number of clients you wish to add. __The flag -outputFile <file.txt> is optional, if you do not input this option, the message will be print into the terminal__. If you input this option, all the message will be written into a text file you specified. Replace <file.txt> with a text file name 
 
 7. Repeat step 4-6 on the same number of virtual machines you wish to deploy on and start chatting!
 
