@@ -56,6 +56,7 @@ public class IsisTotallyOrderedMC implements Multicast, Application, MessageList
 	private int largestAgreedNum;
 	/** largest proposed sequence number*/
 	private int largestProposedNum;
+	private final int firstRoundTimeout;
 	/** Priority class type, use to query in metadate*/
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private static final Class<Pair<String, Integer>> clazz = (Class) Pair.class;
@@ -63,7 +64,6 @@ public class IsisTotallyOrderedMC implements Multicast, Application, MessageList
 	private static final String PRIORITY = "MESSAGE_PRIORITY";
 	/** message agreement keyword */
 	private static final String AGREED = "MESSAGE_AGREEMENT";
-	private static final int FIRST_ROUND_TIMEOUT = 600;
 	
 	/** Priority comparator anonymous class implementation */
 	public static Comparator<Message> pComparator = new Comparator<Message>(){	
@@ -87,12 +87,13 @@ public class IsisTotallyOrderedMC implements Multicast, Application, MessageList
 	};
 	
 	
-	public IsisTotallyOrderedMC(Multicast reliable,Messenger messenger ,GroupManager groupManager){
+	public IsisTotallyOrderedMC(Multicast reliable,Messenger messenger ,GroupManager groupManager, int firstRoundTimeout){
 		this.groupManager = groupManager;
 		this.reliableMulticast = reliable;
 		this.reliableMulticast.registerApplication(this);
 		this.messenger = messenger;
 		this.messenger.registerListener(this);
+		this.firstRoundTimeout = firstRoundTimeout;
 		this.holdBackQueue =  new PriorityQueue<Message>(pComparator);
 		this.model = new ModelImpl();
 		this.failedProcesses = new HashSet<Process>();
@@ -107,8 +108,7 @@ public class IsisTotallyOrderedMC implements Multicast, Application, MessageList
 		
 		for(Process p : groupManager.getGroupMembers()) {
 			try {
-				// timeout added by Bhopesh, Randolph needs to think what to do in case message times out.
-				Message replied = this.messenger.send(Pair.of(p, m), FIRST_ROUND_TIMEOUT);
+				Message replied = this.messenger.send(Pair.of(p, m), this.firstRoundTimeout);
 				if(replied != null) {
 					int compareRes = pComparator.compare(m, replied);
 					if(compareRes < 0) {
@@ -239,7 +239,7 @@ public class IsisTotallyOrderedMC implements Multicast, Application, MessageList
 					holdBackQueue.add(message);
 				}				
 			}
-		}, 2*FIRST_ROUND_TIMEOUT);
+		}, 2*this.firstRoundTimeout);
 	}
 
 }
