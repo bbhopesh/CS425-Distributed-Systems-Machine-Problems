@@ -4,7 +4,7 @@ This project implements a chat system that supports **totally ordered multicast*
 # Building
 1. Git clone this repo into a local directory.
 
-2. cd to project home directory and run sh transfer-binary.sh USERNAME VM_NUMS. This shell script will build the application and transfer the built tar file to VM_NUMS of virtual machines assigned to our group(gourp 4).It will also untar the files on the root directory of the VM. Note this script requires you to automate login process using ssh-copy-id id@server. If you can't automatically login your cluster, then go to step three. Otherwise go to step 6. 
+2. cd to project home directory and run sh transfer-binary.sh VM_NUMS USERNAME. This shell script will build the application and transfer the built tar file to VM_NUMS of virtual machines assigned to our group(gourp 4).It will also untar the files on the root directory of the VM. Note this script requires you to automate login process using ssh-copy-id id@server. If you can't automatically login your cluster, then go to step three. Otherwise go to step 6. 
 
 3. run ./gradlew clean build
 
