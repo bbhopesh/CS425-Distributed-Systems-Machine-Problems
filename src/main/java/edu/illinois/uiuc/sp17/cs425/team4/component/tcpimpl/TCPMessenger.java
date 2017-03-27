@@ -8,13 +8,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
 
-import edu.illinois.uiuc.sp17.cs425.team4.component.MessageAdaptor;
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListener;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Messenger;
+import edu.illinois.uiuc.sp17.cs425.team4.exceptions.MessengerException;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import net.jcip.annotations.GuardedBy;
@@ -39,7 +38,7 @@ final class TCPMessenger implements Messenger {
 	/** Executor service to submit new threads to. */
 	private final ExecutorService threadPool;
 	/** Message Adaptor. */
-	private final MessageAdaptor messageAdaptor;
+	private final TCPMessageAdaptor messageAdaptor;
 	/** Identity of this process. */
 	private final Process myIdentity;
 	/** Message Listener. */
@@ -64,7 +63,7 @@ final class TCPMessenger implements Messenger {
 		this.threadPool = (ExecutorService) checkForNull(builder.getThreadPool(),
 				"Thread pool cannot be null.");
 		// Get adaptor.
-		this.messageAdaptor = (MessageAdaptor) checkForNull(builder.getMessageAdaptor(), "Message Adaptor cannot be null");
+		this.messageAdaptor = (TCPMessageAdaptor) checkForNull(builder.getMessageAdaptor(), "Message Adaptor cannot be null");
 		this.myIdentity = (Process) checkForNull(builder.getMyIdentity(), "Identity cannot be null");
 		this.messageListeners = new CopyOnWriteArrayList<MessageListener>();
 	}
@@ -77,7 +76,7 @@ final class TCPMessenger implements Messenger {
 				this.tcpServer.setMessageListeners(this.messageListeners);
 				this.initialized = true;
 			} else {
-				throw new ContextedRuntimeException("Messenger already initialized. Ignoring this call.");
+				throw new MessengerException("Messenger already initialized. Ignoring this call.");
 			}
 		}
 		
@@ -86,9 +85,9 @@ final class TCPMessenger implements Messenger {
 	
 	@Override
 	public Message send(Pair<Process, Message> dstnAndMsg, int timeout) {
-		checkForFailure();
 		// Thread safety on this message relies on the thread safety of message adaptor.
 		try {
+			checkForFailure();
 			// Open socket with destination.
 			Process p = dstnAndMsg.getLeft();
 			Socket s = new Socket(p.getInetAddress(), p.getPort());
@@ -102,10 +101,14 @@ final class TCPMessenger implements Messenger {
 			if (srcAndMsg == null) {
 				LOG.debug(String.format("No reply for message %s from %s", dstnAndMsg.getRight().getUUID(),  dstnAndMsg.getLeft().getDisplayName()));
 			}
-			s.close();
+			try {
+				s.close();
+			} catch (IOException e) {
+				// ignore.
+			}
 			return srcAndMsg == null ? null: srcAndMsg.getRight();
-		} catch (IOException e) {
-			throw new ContextedRuntimeException(
+		} catch (Exception e) {
+			throw new MessengerException(
 					"Couldn't send message to " + dstnAndMsg.getLeft().toString(),
 					e);
 		}
@@ -114,25 +117,25 @@ final class TCPMessenger implements Messenger {
 
 	@Override
 	public boolean registerListener(MessageListener listener) {
-		checkForFailure();
+		try {
+			checkForFailure();
+		} catch (ExecutionException | InterruptedException e) {
+			throw new MessengerException("Couldn't register listener.", e);
+		}
 		return this.messageListeners.add(listener);
 	}
 
 	
 	@GuardedBy("this")
-	private synchronized void checkForFailure() {
+	private synchronized void checkForFailure() throws ExecutionException, InterruptedException {
 		if (this.tcpServerFut != null && this.tcpServerFut.isDone()) {
 			try {
 				// following line will throw exception if there was an error on server.
-				// Won't do anything oherwise.
+				// Won't do anything otherwise.
 				tcpServerFut.get();
 			} catch (InterruptedException e) {
 				Thread.currentThread().interrupt(); // so that code up stack trace is aware of interrupt.
-				throw new ContextedRuntimeException(e);
-			} catch (ExecutionException e) {
-				throw new ContextedRuntimeException(e);
-			} catch (Exception e) {
-				throw new ContextedRuntimeException(e);
+				throw e;
 			}
 		}
 	}

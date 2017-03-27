@@ -2,7 +2,6 @@ package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
 
 
 
-import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.apache.commons.lang3.tuple.Pair;
 
 import edu.illinois.uiuc.sp17.cs425.team4.component.Application;
@@ -13,6 +12,7 @@ import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListener;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Messenger;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Multicast;
 import edu.illinois.uiuc.sp17.cs425.team4.component.ResponseWriter;
+import edu.illinois.uiuc.sp17.cs425.team4.exceptions.MessengerException;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Model;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
@@ -70,7 +70,7 @@ public class BasicMulticast implements Multicast, MessageListener, GroupChangeLi
 			// ...Just an idea, didn't give it much thought yet.
 			try {
 				this.mesenger.send(Pair.of(p, m), 1);
-			} catch (ContextedRuntimeException e) {
+			} catch (MessengerException e) {
 				// ignore.
 			}
 		}
@@ -79,7 +79,7 @@ public class BasicMulticast implements Multicast, MessageListener, GroupChangeLi
 	@Override
 	public boolean registerApplication(Application application) {
 		if (this.registeredApplication != null) {
-			throw new ContextedRuntimeException("Application can only be registered once.");
+			throw new RuntimeException("Application can only be registered once.");
 		}
 		this.registeredApplication = application;
 		return true;

@@ -1,8 +1,8 @@
 package edu.illinois.uiuc.sp17.cs425.team4.component;
 
-import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.apache.commons.lang3.tuple.Pair;
 
+import edu.illinois.uiuc.sp17.cs425.team4.exceptions.MessengerException;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 
@@ -16,17 +16,23 @@ public interface Messenger {
 	
 	/** 
 	 * Initialize messenger.
+	 * @throws MessengerException
 	 */
-	public void initialize();
+	public void initialize() throws MessengerException;;
 	
 	/**
 	 * Send message to the given destination.
 	 * @param dstnAndMsg Pair containing message and it's destination.
 	 * @param timeout no of milliseconds to wait for the response.
 	 * @return The reply of the sent message.
-	 * @throws ContexedRuntimeException if there is a problem in sending the message.
+	 * @throws MessengerException if there is a problem in sending the message.
+	 * Implementations should always wrap underlying error in MessengerException and then throw it,
+	 * and also document what would be cause of ContextedRuntimeException in what situations.
+	 * e.g. If there is a TCP implementation of the messenger and connection is refused or message reached
+	 * other end but while replying to the message, remote host died, then, appropriate IOException/SocketTimeoutException
+	 * etc. should be wrapped in MessengerException and thrown.
 	 */
-	public Message send(Pair<Process, Message> dstnAndMsg, int timeout) throws ContextedRuntimeException;
+	public Message send(Pair<Process, Message> dstnAndMsg, int timeout) throws MessengerException;
 	
 	
 	/**
@@ -38,8 +44,9 @@ public interface Messenger {
 	 * because same listener would be called multiple times on receipt of multiple messages.  
 	 * @param listener register this listener.
 	 * @return true if register successfully false otherwise.
+	 * @throws MessengerException
 	 */
-	public boolean registerListener(MessageListener listener);
+	public boolean registerListener(MessageListener listener) throws MessengerException;;
 	
 	/**
 	 * A builder interface for messenger.

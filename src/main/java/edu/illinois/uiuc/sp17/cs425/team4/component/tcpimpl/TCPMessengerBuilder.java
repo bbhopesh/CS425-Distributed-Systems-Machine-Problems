@@ -5,7 +5,6 @@ import java.net.InetAddress;
 import java.util.concurrent.ExecutorService;
 
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
-import edu.illinois.uiuc.sp17.cs425.team4.component.MessageAdaptor;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Messenger;
 import net.jcip.annotations.NotThreadSafe;
 
@@ -28,7 +27,7 @@ public class TCPMessengerBuilder implements Messenger.Builder {
 	/** Thread pool that TCP messenger should use to submit new tasks. */
 	private ExecutorService threadPool;
 	/** Message Adaptor. */
-	private MessageAdaptor messageAdaptor;
+	private TCPMessageAdaptor messageAdaptor;
 	/** Identity of this process. This will be typically used to communicate consistently with other processes.*/
 	private Process myIdentity;
 	
@@ -110,7 +109,7 @@ public class TCPMessengerBuilder implements Messenger.Builder {
 	 * Get message adaptor. 
 	 * @return message adaptor.
 	 */
-	public MessageAdaptor getMessageAdaptor() {
+	public TCPMessageAdaptor getMessageAdaptor() {
 		return messageAdaptor;
 	}
 
@@ -119,7 +118,7 @@ public class TCPMessengerBuilder implements Messenger.Builder {
 	 * messages and high-level messages.
 	 * @param messageAdaptor
 	 */
-	public TCPMessengerBuilder setMessageAdaptor(MessageAdaptor messageAdaptor) {
+	public TCPMessengerBuilder setMessageAdaptor(TCPMessageAdaptor messageAdaptor) {
 		this.messageAdaptor = messageAdaptor;
 		return this;
 	}

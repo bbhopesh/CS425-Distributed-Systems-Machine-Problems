@@ -8,11 +8,9 @@ import java.net.Socket;
 import java.net.SocketTimeoutException;
 
 import org.apache.commons.lang3.SerializationUtils;
-import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
 
-import edu.illinois.uiuc.sp17.cs425.team4.component.MessageAdaptor;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import edu.illinois.uiuc.sp17.cs425.team4.util.IOUtils;
@@ -29,14 +27,12 @@ import edu.illinois.uiuc.sp17.cs425.team4.util.IOUtils;
  * @author bbassi2
  *
  */
-public class TCPMessageAdaptor implements MessageAdaptor {
+public class TCPMessageAdaptor {
 	/** Logger. */
 	private final static Logger LOG = Logger.getLogger(TCPMessageAdaptor.class.getName());
 	
-	@Override
-	public Pair<Process, Message> read(Object conn) {
+	public Pair<Process, Message> read(Socket socket) throws IOException {
 		try {
-			Socket socket =  (Socket) conn;
 			byte[] serverResponse = IOUtils.readInputSizePrefixed(socket.getInputStream());
 			// Deserialize.
 			Pair<Process, Message> srcAndMsg = SerializationUtils.deserialize(serverResponse);
@@ -44,29 +40,29 @@ public class TCPMessageAdaptor implements MessageAdaptor {
 		} catch (SocketTimeoutException e) {
 			// timeout.
 			LOG.debug(e.getMessage());
-			return null;
+			throw e;
 		} catch (EOFException e) {
 			// remote socket closed by peer.
+			
+			// It is because of the way our IOUtils method is implemented that we are getting end of file exception 
+			// if remote peer closes socket before writing anything.
+			// I think, it is happening because readInt is throwing EOF if remote peer closes connection without writing
+			// anything. I am not sure though, need to look at javadocs and different edge cases more carefully.
+			
+			// In any case, this block is meant to detect when remtoe peer closes socket. If there is a better
+			// way to detect that, then, we can move to that.
 			LOG.debug(e.getMessage());
 			return null;
-		} catch (IOException e) {
-			throw new ContextedRuntimeException(e);
 		}
 	}
 
-	@Override
-	public void write(Object conn, Pair<Process, Message> sourceAndMessage) {
-		try {
-			Socket socket = (Socket) conn;
-			// Serialize.
-			byte[] srcAndMsg = SerializationUtils.serialize(sourceAndMessage);
-			// Prefix size of the message.
-			byte[] sizePrefixedSrcAndMsg = IOUtils.prefixSize(srcAndMsg);
-			// Write to socket.
-			DataOutput outToServer = new DataOutputStream(socket.getOutputStream());
-			outToServer.write(sizePrefixedSrcAndMsg);
-		} catch (IOException e) {
-			throw new ContextedRuntimeException(e);
-		}
+	public void write(Socket socket, Pair<Process, Message> sourceAndMessage) throws IOException {
+		// Serialize.
+		byte[] srcAndMsg = SerializationUtils.serialize(sourceAndMessage);
+		// Prefix size of the message.
+		byte[] sizePrefixedSrcAndMsg = IOUtils.prefixSize(srcAndMsg);
+		// Write to socket.
+		DataOutput outToServer = new DataOutputStream(socket.getOutputStream());
+		outToServer.write(sizePrefixedSrcAndMsg);
 	}
 }

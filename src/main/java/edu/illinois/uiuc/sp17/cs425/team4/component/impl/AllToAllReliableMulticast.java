@@ -3,7 +3,6 @@ package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.apache.commons.lang3.tuple.Pair;
 
 import edu.illinois.uiuc.sp17.cs425.team4.component.Application;
@@ -78,7 +77,7 @@ public class AllToAllReliableMulticast implements Multicast, Application {
 	@Override
 	public boolean registerApplication(Application application) {
 		if (this.registeredApplication != null) {
-			throw new ContextedRuntimeException("Application can only be registered once.");
+			throw new RuntimeException("Application can only be registered once.");
 		}
 		this.registeredApplication = application;
 		return true;

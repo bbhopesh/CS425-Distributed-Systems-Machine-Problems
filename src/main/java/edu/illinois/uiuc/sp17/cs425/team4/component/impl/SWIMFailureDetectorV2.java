@@ -16,7 +16,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
 
-import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
 
@@ -370,7 +369,7 @@ public class SWIMFailureDetectorV2 implements GroupManager, MessageListener, Cal
 		if (msgType == MessageType.PING) {
 			handlePing(sender, msg, responseWriter);
 		} else {
-			throw new ContextedRuntimeException("Can only handle ping messages.");
+			throw new RuntimeException("Can only handle ping messages.");
 		}
 	}
 
@@ -384,8 +383,11 @@ public class SWIMFailureDetectorV2 implements GroupManager, MessageListener, Cal
 		while (System.currentTimeMillis() - start <= 5000);*/
 		Message ack = createAckMessage();
 		LOG.debug(String.format("D Responding to message %s from %s with message %s",msg.getUUID(), sender.getDisplayName(), ack.getUUID()));
-		responseWriter.writeResponse(ack);
-		responseWriter.close();
+		try {
+			responseWriter.writeResponse(ack);
+		} finally{
+			responseWriter.close();
+		}
 	}
 	
 	

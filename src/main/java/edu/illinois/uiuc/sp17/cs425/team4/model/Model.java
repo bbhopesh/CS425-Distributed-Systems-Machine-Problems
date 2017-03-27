@@ -101,6 +101,22 @@ public interface Model {
 	 */
 	public Message createAckMessage(Process originatingProcess, UUID uId);
 	
+	public <K> Message createKeyReadMessage(Process originatingProcess, K key, Long timestamp);
+	
+	public <K> Message createKeyReadMessage(Process originatingProcess, K key, Long timestamp, UUID uId);
+	
+	public <K, V> Message createKeyWriteMessage(Process originatingProcess, K key, V val, Long timestamp);
+	
+	public <K, V> Message createKeyWriteMessage(Process originatingProcess, K key, V val, Long timestamp, UUID uId);
+	
+	public <V> Message createValueMessage(Process originatingProcess, V val, Long timestamp);
+	
+	public <V> Message createValueMessage(Process originatingProcess, V val, Long timestamp, UUID uId);
+	
+	public <K> Message createKeyDeleteMessage(Process originatingProcess, K key);
+	
+	public <K> Message createKeyDeleteMessage(Process originatingProcess, K key, UUID uId);
+	
 	/**
 	 * Create process with provided unique id.
 	 * @param inetAddress InetAddress

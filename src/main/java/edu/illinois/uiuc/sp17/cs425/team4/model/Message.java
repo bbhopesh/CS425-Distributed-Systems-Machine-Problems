@@ -25,7 +25,12 @@ public interface Message extends Serializable {
 		LEFT, // Indicating that a process has left.
 		TEXT,  // Text message.
 		PING, // Ping message.
-		ACK // Acknowledge message.
+		ACK, // Acknowledge message.
+		NACK, // Negative acknowledgement.
+		KEY_READ, // Key Read. requesting to read value for a key.
+		KEY_WRITE, // Key Write message. Requesting a K-V pair to be written
+		VALUE, // Message containing a value. This is intended to be used as a response to KEY_READ message.
+		KEY_DELETE // Message asking remote peer to delete a key.
 	}
 	
 	/** Get message type. */
