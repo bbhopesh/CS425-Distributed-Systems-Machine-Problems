@@ -1,7 +1,9 @@
 package edu.illinois.uiuc.sp17.cs425.team4.model;
 
 import java.net.InetAddress;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Future;
 
 /**
  * Factory class for various model elements.
@@ -135,5 +137,10 @@ public interface Model {
 	 * @return Process.
 	 */
 	public Process createProcess(InetAddress inetAddress, int port, String displayName, UUID uId);
+	
+	public <R> KVRawOpResult<R> createKVRawOpResult(boolean succeeded, 
+							Map<Process, R> completed, 
+							Map<Process, Throwable> failures,
+							Map<Process, Future<R>> inProgress);
 
 }

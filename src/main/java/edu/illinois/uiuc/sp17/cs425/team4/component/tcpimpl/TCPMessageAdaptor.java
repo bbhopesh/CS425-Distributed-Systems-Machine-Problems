@@ -52,7 +52,7 @@ public class TCPMessageAdaptor {
 			// In any case, this block is meant to detect when remtoe peer closes socket. If there is a better
 			// way to detect that, then, we can move to that.
 			LOG.debug(e.getMessage());
-			return null;
+			throw e;
 		}
 	}
 

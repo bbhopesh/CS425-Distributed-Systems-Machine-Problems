@@ -7,7 +7,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import edu.illinois.uiuc.sp17.cs425.team4.component.KVDataManager;
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListenerIdentifier;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Messenger;
-import edu.illinois.uiuc.sp17.cs425.team4.exceptions.MessengerException;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Model;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
@@ -42,18 +41,14 @@ final class KVKeyDeleteCallable<K, V> implements Callable<Boolean> {
 
 	@Override
 	public Boolean call() throws Exception {
-		Boolean deleteSuccessful = false;
-		
-		try {
-			if (this.deleteFrom.equals(this.myIdentity)) { // Write to local.
-				deleteSuccessful = delteFromLocal();
-			} else { // Write to remote.
-				deleteSuccessful = deleteFromRemote();
-			}
-		} catch (MessengerException e) {
-			// ignore. We return false if there is an error.
+		// If there is an exception while doing a remote delete(MessengerException),
+		// then that exception will be propagated up the call stack as it is.
+		// Caller can retry if she wishes to.
+		if (this.deleteFrom.equals(this.myIdentity)) { // Delete from local.
+			return delteFromLocal();
+		} else { // Delete from remote.
+			return deleteFromRemote();
 		}
-		return deleteSuccessful;
 	}
 
 

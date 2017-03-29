@@ -7,7 +7,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import edu.illinois.uiuc.sp17.cs425.team4.component.KVDataManager;
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListenerIdentifier;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Messenger;
-import edu.illinois.uiuc.sp17.cs425.team4.exceptions.MessengerException;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Model;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
@@ -43,23 +42,15 @@ final class KVWriteCallable<K, V> implements Callable<Boolean> {
 
 	@Override
 	public Boolean call() throws Exception {
-		// or if remote peer doesn't send a ValueMessage, then exception will be thrown as it is from this method.
-		// TCPMessenger currently throws an ContexedRuntimeException if there is an IOException while communicating with remote server.
-		// However, TCPMessenger returns null if remote peer closes socket or if request times out.
-		// I should specify the behavior of Messenger at the interface level but leaving it as it for now.
+		// If there is an exception while doing a remote write(MessengerException),
+		// then that exception will be propagated up the call stack as it is.
+		// Caller can retry if she wishes to.
 		
-		Boolean writeSuccessful = false;
-		
-		try {
-			if (this.writeTo.equals(this.myIdentity)) { // Write to local.
-				writeSuccessful = writeToLocal();
-			} else { // Write to remote.
-				writeSuccessful = writeToRemote();
-			}
-		} catch (MessengerException e) {
-			// ignore. We return false if there is an error.
+		if (this.writeTo.equals(this.myIdentity)) { // Write to local.
+			return writeToLocal();
+		} else { // Write to remote.
+			return writeToRemote();
 		}
-		return writeSuccessful;
 	}
 
 	private boolean writeToLocal() throws Exception {

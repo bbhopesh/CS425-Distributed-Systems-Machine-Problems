@@ -48,9 +48,9 @@ public class SimpleKVCoordinator<K, V> implements KVDataManager<K, V>, MessageLi
 	}
 
 	@Override
-	public void write(K key, V value) {
+	public boolean write(K key, V value) {
 		// TODO Auto-generated method stub
-		
+		return false;
 	}
 	
 	@Override
@@ -60,9 +60,9 @@ public class SimpleKVCoordinator<K, V> implements KVDataManager<K, V>, MessageLi
 	}
 
 	@Override
-	public void write(K key, V value, long timestamp) {
+	public boolean write(K key, V value, long timestamp) {
 		// TODO Auto-generated method stub
-		
+		return false;
 	}
 
 
@@ -178,8 +178,8 @@ public class SimpleKVCoordinator<K, V> implements KVDataManager<K, V>, MessageLi
 	}
 
 	@Override
-	public void delete(K key) {
+	public boolean delete(K key) {
 		// TODO Auto-generated method stub
-		
+		return false;
 	}
 }

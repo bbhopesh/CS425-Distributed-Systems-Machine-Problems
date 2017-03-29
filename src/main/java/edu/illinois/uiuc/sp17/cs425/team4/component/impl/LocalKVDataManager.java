@@ -10,7 +10,9 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import org.apache.commons.lang3.tuple.Pair;
 
 import edu.illinois.uiuc.sp17.cs425.team4.component.KVDataManager;
+import net.jcip.annotations.ThreadSafe;
 
+@ThreadSafe
 public class LocalKVDataManager<K,V> implements KVDataManager<K, V> {
 
 	private final ConcurrentMap<K, ConcurrentNavigableMap<Long,V>> data;
@@ -25,8 +27,8 @@ public class LocalKVDataManager<K,V> implements KVDataManager<K, V> {
 	}
 
 	@Override
-	public void write(K key, V value) {
-		write(key, value, System.currentTimeMillis());
+	public boolean write(K key, V value) {
+		return write(key, value, System.currentTimeMillis());
 	}
 
 	@Override
@@ -37,22 +39,28 @@ public class LocalKVDataManager<K,V> implements KVDataManager<K, V> {
 		// Return value for timestamp less than or equal to the given timestamp.
 		// Ceiling entry because we are storing items in Map by descending order of timestamp.
 		Entry<Long, V> valueEntry = timestampedValues.ceilingEntry(asOfTimestamp);
-		return Pair.of(valueEntry.getKey(), valueEntry.getValue());
+		if (valueEntry == null) {
+			return null;
+		} else {
+			return Pair.of(valueEntry.getKey(), valueEntry.getValue());
+		}
 		// Both inner and outer maps are thread-safe, so we don't need to synchronize ourselves.
 	}
 
 	@Override
-	public void write(K key, V value, long timestamp) {
+	public boolean write(K key, V value, long timestamp) {
 		ConcurrentNavigableMap<Long, V> timestampedValues = new ConcurrentSkipListMap<Long, V>(createDecLongComp());
 		// Atomically add an empty value map if the key is new.
 		timestampedValues = this.data.putIfAbsent(key, timestampedValues);
 		timestampedValues.put(timestamp, value);
 		// Both inner and outer maps are thread-safe, so we don't need to synchronize ourselves.
+		return true;
 	}
 
 	@Override
-	public void delete(K key) {
+	public boolean delete(K key) {
 		this.data.remove(key);
+		return true;
 	}
 	
 

@@ -1,9 +1,11 @@
 package edu.illinois.uiuc.sp17.cs425.team4.model.impl;
 
 import java.net.InetAddress;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Future;
 
-
+import edu.illinois.uiuc.sp17.cs425.team4.model.KVRawOpResult;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Model;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
@@ -128,6 +130,13 @@ public class ModelImpl implements Model {
 	public <K> Message createKeyDeleteMessage(Process originatingProcess, K key, UUID uId) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+	
+	public <R> KVRawOpResult<R> createKVRawOpResult(boolean succeeded, 
+			Map<Process, R> completed, 
+			Map<Process, Throwable> failures,
+			Map<Process, Future<R>> inProgress) {
+		return new KVRawOpResultImpl<>(succeeded, completed, failures, inProgress);
 	}
 
 }
