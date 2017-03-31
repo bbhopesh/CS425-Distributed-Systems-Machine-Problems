@@ -7,11 +7,9 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 
-import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
 
-import edu.illinois.uiuc.sp17.cs425.team4.component.MessageAdaptor;
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListener;
 import edu.illinois.uiuc.sp17.cs425.team4.component.ResponseWriter;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
@@ -34,7 +32,7 @@ final class TCPServer implements Callable<Void> {
 	/** TCP server. */
 	private final ServerSocket tcpServerSocket;
 	/** Message Adaptor. */
-	private final MessageAdaptor messageAdaptor;
+	private final TCPMessageAdaptor messageAdaptor;
 	/** Thread pool. */
 	private final ExecutorService threadPool;
 	/** Identity of this process. */
@@ -55,43 +53,33 @@ final class TCPServer implements Callable<Void> {
 		this.tcpServerSocket = createTcpServerSocket(port, builder);
 		
 		// Get adaptor.
-		this.messageAdaptor = (MessageAdaptor) checkForNull(builder.getMessageAdaptor(), "Message Adaptor cannot be null");
+		this.messageAdaptor = (TCPMessageAdaptor) checkForNull(builder.getMessageAdaptor(), "Message Adaptor cannot be null");
 		// Get Identity.
 		this.myIdentity = (Process) checkForNull(builder.getMyIdentity(), "Identity cannot be null");
 	}
 
 
 	@Override
-	public Void call() {
-		try {
-			
-			while(true) {
-				/* 
-				 * Ideally, here we should check for interrupted flag to know when to 
-				 * stop looping. However, ServerSocket.accpet() doesn't respect interruption, 
-				 * so there's no use. To make this loop stop, we will have to close tcpServer 
-				 * from other thread. This will make accept() throw SocketException.
-				*/
-				Socket connectionSocket = this.tcpServerSocket.accept();
-				Pair<Process,Message> srcAndMsg = readMessage(connectionSocket);
-				if (srcAndMsg == null) continue;
-				LOG.debug(String.format("Incoming message %s arrived from %s", srcAndMsg.getRight().getUUID(), srcAndMsg.getLeft().getDisplayName()));
-				ResponseWriter responseWriter = createResponseWriter(connectionSocket);
-				// Listener to whom this message should be routed to.
-				MessageListener listener = getListener(srcAndMsg);
-				// notify listener on different thread.
-				Callable<Void> messageListenerWrapper = 
-						new MessageListenerWrapper(listener, srcAndMsg, responseWriter);
-				this.threadPool.submit(messageListenerWrapper);
-			} 
-		} catch (IOException e) {
-			//e.printStackTrace();
-			throw new ContextedRuntimeException(e);
-		} catch (Exception e) {
-			//e.printStackTrace();
-			throw e;
-		}
-
+	public Void call() throws Exception {
+		while(true) {
+			/* 
+			 * Ideally, here we should check for interrupted flag to know when to 
+			 * stop looping. However, ServerSocket.accpet() doesn't respect interruption, 
+			 * so there's no use. To make this loop stop, we will have to close tcpServer 
+			 * from other thread. This will make accept() throw SocketException.
+			*/
+			Socket connectionSocket = this.tcpServerSocket.accept();
+			Pair<Process,Message> srcAndMsg = readMessage(connectionSocket);
+			if (srcAndMsg == null) continue;
+			LOG.debug(String.format("Incoming message %s arrived from %s", srcAndMsg.getRight().getUUID(), srcAndMsg.getLeft().getDisplayName()));
+			ResponseWriter responseWriter = createResponseWriter(connectionSocket);
+			// Listener to whom this message should be routed to.
+			MessageListener listener = getListener(srcAndMsg);
+			// notify listener on different thread.
+			Callable<Void> messageListenerWrapper = 
+					new MessageListenerWrapper(listener, srcAndMsg, responseWriter);
+			this.threadPool.submit(messageListenerWrapper);
+		} 
 	}
 	
 	
@@ -132,7 +120,11 @@ final class TCPServer implements Callable<Void> {
 	}
 	
 	private Pair<Process,Message> readMessage(Socket tcpIncomingSocket) {
-		return this.messageAdaptor.read(tcpIncomingSocket);
+		try {
+			return this.messageAdaptor.read(tcpIncomingSocket);
+		} catch (IOException e) {
+			return null;
+		}
 	}
 	
 	private MessageListener getListener(Pair<Process,Message> srcAndMsg) {

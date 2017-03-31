@@ -19,7 +19,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
 
@@ -455,7 +454,7 @@ public class SWIMFailureDetector implements GroupManager, MessageListener, Calla
 		if (msgType == MessageType.PING) {
 			handlePing(sender, msg, responseWriter);
 		} else {
-			throw new ContextedRuntimeException("Can only handle ping messages.");
+			throw new RuntimeException("Can only handle ping messages.");
 		}
 	}
 
@@ -473,8 +472,11 @@ public class SWIMFailureDetector implements GroupManager, MessageListener, Calla
 		while (System.currentTimeMillis() - start <= 5000);*/
 		Message ack = createAckMessage();
 		LOG.debug(String.format("D Responding to message %s from %s with message %s",msg.getUUID(), sender.getDisplayName(), ack.getUUID()));
-		responseWriter.writeResponse(ack);
-		responseWriter.close();
+		try {
+			responseWriter.writeResponse(ack);
+		} finally {
+			responseWriter.close();
+		}
 	}
 	
 	private void handleIndirectPing(Process sender, Message msg, ResponseWriter responseWriter) {
@@ -484,11 +486,15 @@ public class SWIMFailureDetector implements GroupManager, MessageListener, Calla
 		msg.getMetadata().setProperty(INDIRECT_PING_PROP, null);
 		Message response = pingProcess(msg, indirectPingTarget, indirectPingTimeout());
 		LOG.debug(String.format("I Responding to message %s from %s with message %s",msg.getUUID(), sender.getDisplayName(), response.getUUID()));
-		if (response != null) {
-			stampMetaData(response);
-			responseWriter.writeResponse(response);
+		
+		try {
+			if (response != null) {
+				stampMetaData(response);
+				responseWriter.writeResponse(response);
+			}
+		} finally {
+			responseWriter.close();
 		}
-		responseWriter.close();
 	}
 	
 	private boolean isIndirectPing(Message msg) {

@@ -1,21 +1,23 @@
 package edu.illinois.uiuc.sp17.cs425.team4.model.impl;
 
 import java.net.InetAddress;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Future;
 
-
+import edu.illinois.uiuc.sp17.cs425.team4.model.KVRawOpResult;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Model;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import edu.illinois.uiuc.sp17.cs425.team4.model.TextMessage;
-import net.jcip.annotations.NotThreadSafe;
+import net.jcip.annotations.ThreadSafe;
 
 /**
  * An implementation of Model factory.
  * 
  * @author bbassi2
  */
-@NotThreadSafe
+@ThreadSafe
 public class ModelImpl implements Model {
 	
 	@Override
@@ -86,6 +88,55 @@ public class ModelImpl implements Model {
 	@Override
 	public Message createAckMessage(Process originatingProcess, UUID uId) {
 		return new AckMessageImpl(originatingProcess, uId);
+	}
+
+	@Override
+	public <K> Message createKeyReadMessage(Process originatingProcess, K key, Long timestamp) {
+		return new KeyReadMessageImpl<K>(originatingProcess, key, timestamp);
+	}
+
+	@Override
+	public <K> Message createKeyReadMessage(Process originatingProcess, K key, Long timestamp, UUID uId) {
+		return new KeyReadMessageImpl<K>(originatingProcess, key, timestamp, uId);
+	}
+
+	@Override
+	public <K, V> Message createKeyWriteMessage(Process originatingProcess, K key, V val, Long timestamp) {
+		return new KeyWriteMessageImpl<K, V>(originatingProcess, key, val, timestamp);
+	}
+
+	@Override
+	public <K, V> Message createKeyWriteMessage(Process originatingProcess, K key, V val, Long timestamp, UUID uId) {
+		return new KeyWriteMessageImpl<K, V>(originatingProcess, key, val, timestamp, uId);
+	}
+
+	@Override
+	public <V> Message createValueMessage(Process originatingProcess, V val, Long timestamp) {
+		return new ValueMessageImpl<V>(originatingProcess, val, timestamp);
+	}
+
+	@Override
+	public <V> Message createValueMessage(Process originatingProcess, V val, Long timestamp, UUID uId) {
+		return new ValueMessageImpl<V>(originatingProcess, val, timestamp, uId);
+	}
+
+	@Override
+	public <K> Message createKeyDeleteMessage(Process originatingProcess, K key) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public <K> Message createKeyDeleteMessage(Process originatingProcess, K key, UUID uId) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	public <R> KVRawOpResult<R> createKVRawOpResult(boolean succeeded, 
+			Map<Process, R> completed, 
+			Map<Process, Throwable> failures,
+			Map<Process, Future<R>> inProgress) {
+		return new KVRawOpResultImpl<>(succeeded, completed, failures, inProgress);
 	}
 
 }

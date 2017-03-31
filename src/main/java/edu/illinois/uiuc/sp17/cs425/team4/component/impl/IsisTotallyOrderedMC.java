@@ -9,7 +9,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import org.apache.commons.configuration2.Configuration;
-import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.apache.commons.lang3.tuple.Pair;
 
 import edu.illinois.uiuc.sp17.cs425.team4.component.Application;
@@ -20,6 +19,7 @@ import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListener;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Messenger;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Multicast;
 import edu.illinois.uiuc.sp17.cs425.team4.component.ResponseWriter;
+import edu.illinois.uiuc.sp17.cs425.team4.exceptions.MessengerException;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Model;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
@@ -116,7 +116,7 @@ public class IsisTotallyOrderedMC implements Multicast, Application, MessageList
 						m.getMetadata().setProperty(PRIORITY, Pair.of(newPriority.getLeft(), newPriority.getRight()));	
 					}					
 				}
-			} catch (ContextedRuntimeException e) {
+			} catch (MessengerException e) {
 				// the another end might failed, need to figure out a way to multicast this message
 			}
 		}
@@ -170,7 +170,7 @@ public class IsisTotallyOrderedMC implements Multicast, Application, MessageList
 	@Override
 	public boolean registerApplication(Application application) {
 		if (this.registeredApplication != null) {
-			throw new ContextedRuntimeException("Application can only be registered once.");
+			throw new RuntimeException("Application can only be registered once.");
 		}
 		this.registeredApplication = application;
 		return true;
