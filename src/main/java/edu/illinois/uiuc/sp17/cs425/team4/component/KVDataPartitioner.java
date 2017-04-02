@@ -10,4 +10,6 @@ public interface KVDataPartitioner<K> {
 	public Set<Process> getReplicas(Process process);
 	
 	public Set<Process> replicaOf(Process process);
+	
+	public int numberOfReplicas();
 }

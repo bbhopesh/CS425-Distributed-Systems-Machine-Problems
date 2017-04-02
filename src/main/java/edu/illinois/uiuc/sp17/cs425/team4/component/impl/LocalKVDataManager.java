@@ -1,6 +1,8 @@
 package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
 
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -15,7 +17,6 @@ import net.jcip.annotations.ThreadSafe;
 
 @ThreadSafe
 public class LocalKVDataManager<K,V> implements KVDataManager<K, V> {
-
 	private final ConcurrentMap<K, ConcurrentNavigableMap<Long,V>> data;
 	
 	public LocalKVDataManager() {
@@ -52,7 +53,11 @@ public class LocalKVDataManager<K,V> implements KVDataManager<K, V> {
 	public boolean write(K key, V value, long timestamp) {
 		ConcurrentNavigableMap<Long, V> timestampedValues = new ConcurrentSkipListMap<Long, V>(createDecLongComp());
 		// Atomically add an empty value map if the key is new.
-		timestampedValues = this.data.putIfAbsent(key, timestampedValues);
+		ConcurrentNavigableMap<Long, V> previousVal = this.data.putIfAbsent(key, timestampedValues);
+		if (previousVal != null) {
+			// If there was already a mapping use that.
+			timestampedValues = previousVal;
+		}
 		timestampedValues.put(timestamp, value);
 		// Both inner and outer maps are thread-safe, so we don't need to synchronize ourselves.
 		return true;
@@ -76,9 +81,9 @@ public class LocalKVDataManager<K,V> implements KVDataManager<K, V> {
 	}
 
 	@Override
-	public Set<Pair<Long, V>> list_local() {
-		// TODO Auto-generated method stub
-		return null;
+	public Set<K> listLocal() {
+		Set<K> keys = new HashSet<K>(data.keySet());
+		return Collections.unmodifiableSet(keys);
 	}
 
 }

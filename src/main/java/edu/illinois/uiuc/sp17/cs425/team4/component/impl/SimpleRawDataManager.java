@@ -11,6 +11,7 @@ import java.util.concurrent.Future;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
+import org.apache.log4j.Logger;
 
 import edu.illinois.uiuc.sp17.cs425.team4.component.KVDataManager;
 import edu.illinois.uiuc.sp17.cs425.team4.component.KVRawDataManager;
@@ -24,10 +25,11 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.KeyWriteMessage;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Model;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
+import edu.illinois.uiuc.sp17.cs425.team4.model.ValueMessage;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message.MessageType;
 
 public class SimpleRawDataManager<K, V> implements KVRawDataManager<K, V>, MessageListener {
-	
+	private final static Logger LOG = Logger.getLogger(SimpleRawDataManager.class.getName());
 	/** Listener Identifier. */
 	private static final String S_IDENTIFIER = "SimpleRawDataManager";
 	/** Listener Identifier. */
@@ -48,6 +50,7 @@ public class SimpleRawDataManager<K, V> implements KVRawDataManager<K, V>, Messa
 		this.model = model;
 		this.myIdentity = myIdentity;
 		this.threadPool = threadPool;
+		this.messenger.registerListener(this);
 	}
 	
 	@Override
@@ -105,7 +108,7 @@ public class SimpleRawDataManager<K, V> implements KVRawDataManager<K, V>, Messa
 										readFrom, 
 										getIdentifier(), 
 										requestTimeout, 
-										readFrom, 
+										this.myIdentity, 
 										this.model,
 										this.localDataManager);
 	}
@@ -268,6 +271,7 @@ public class SimpleRawDataManager<K, V> implements KVRawDataManager<K, V>, Messa
 		Message message = sourceAndMsg.getRight();
 		// Delegate to message type specific method.
 		MessageType msgType = message.getMessageType();
+		LOG.debug(String.format("Received message %s with message type %s from %s", message.getUUID(), msgType, sender.getDisplayName()));
 		if (msgType == MessageType.KEY_READ) {
 			handleRemoteReadReq(sender, message, responseWriter);
 		} else if (msgType == MessageType.KEY_WRITE) {
@@ -280,26 +284,30 @@ public class SimpleRawDataManager<K, V> implements KVRawDataManager<K, V>, Messa
 	@SuppressWarnings("unchecked")
 	private void handleRemoteReadReq(Process sender, Message msg, ResponseWriter responseWriter) {
 		// TODO For MP one message will have one read request only. We would do batching in a real world system.
-		
 		// Extract info from message.
 		KeyReadMessage<K> keyReadMsg = (KeyReadMessage<K>) msg;
 		K key = keyReadMsg.getKey();
 		Long asOfTimestamp = keyReadMsg.getTimestamp();
 		// Read data.
 		Pair<Long, V> timestampAndVal = this.localDataManager.read(key, asOfTimestamp);
+		LOG.debug(String.format("Received key read message %s from %s. Key: %s, AsOfTimestamp: %s",
+				keyReadMsg.getUUID(),
+				sender.getDisplayName(), key, asOfTimestamp));
 		// Respond
 		try {
-			// TODO even send a reply for null.
-			if (timestampAndVal != null) {
-				responseWriter.writeResponse(createValueMessage(timestampAndVal));
-			}
+			responseWriter.writeResponse(createValueMessage(timestampAndVal));
 		} finally {
 			responseWriter.close();
 		}
 	}
 	
-	private Message createValueMessage(Pair<Long, V> timestampAndVal) {
-		Message valueMsg = this.model.createValueMessage(this.myIdentity, timestampAndVal.getRight(), timestampAndVal.getLeft());
+	private ValueMessage<V> createValueMessage(Pair<Long, V> timestampAndVal) {
+		ValueMessage<V> valueMsg;
+		if (timestampAndVal == null) {
+			valueMsg = this.model.createNullValueMessage(this.myIdentity);
+		} else {
+			valueMsg = this.model.createValueMessage(this.myIdentity, timestampAndVal.getRight(), timestampAndVal.getLeft());
+		}
 		stampMetaData(valueMsg);
 		return valueMsg;
 	}
@@ -323,6 +331,9 @@ public class SimpleRawDataManager<K, V> implements KVRawDataManager<K, V>, Messa
 		K key = keyWriteMsg.getKey();
 		V val = keyWriteMsg.getValue();
 		Long timestamp = keyWriteMsg.getTimestamp();
+		LOG.debug(String.format("Received key write message %s from %s. Key: %s, Value: %s, Timestamp: %s",
+								keyWriteMsg.getUUID(),
+								sender.getDisplayName(), key, val, timestamp));
 		// write.
 		this.localDataManager.write(key, val, timestamp);
 		try {
@@ -336,6 +347,11 @@ public class SimpleRawDataManager<K, V> implements KVRawDataManager<K, V>, Messa
 	@Override
 	public MessageListenerIdentifier getIdentifier() {
 		return IDENTIFIER;
+	}
+
+	@Override
+	public Set<K> listLocal() {
+		return this.localDataManager.listLocal();
 	}
 
 }

@@ -14,6 +14,7 @@ class KeyReadMessageImpl<K> extends MessageBaseImpl implements KeyReadMessage<K>
 	KeyReadMessageImpl(Process originatingSource, K key, Long timestamp) {
 		super(MessageType.KEY_READ, originatingSource);
 		this.key = key;
+		this.timestamp = timestamp;
 	}
 	
 	KeyReadMessageImpl(Process originatingSource, K key, Long timestamp, UUID uId) {

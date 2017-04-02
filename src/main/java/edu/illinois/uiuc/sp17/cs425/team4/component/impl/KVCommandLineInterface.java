@@ -1,4 +1,4 @@
-package edu.illinois.uiuc.sp17.cs425.team4.MP1;
+package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -12,14 +12,23 @@ import java.util.Set;
 
 import org.apache.commons.lang3.tuple.Pair;
 
-import edu.illinois.uiuc.sp17.cs425.team4.component.impl.HashBasedRingKVDataPartitioner;
-import edu.illinois.uiuc.sp17.cs425.team4.component.impl.LocalKVDataManager;
+import edu.illinois.uiuc.sp17.cs425.team4.component.KVDataManager;
+import edu.illinois.uiuc.sp17.cs425.team4.component.KVDataPartitioner;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 
-public class MP2 {
+public class KVCommandLineInterface {
+	
+	private final KVDataManager<String, String> dataManager;
+	private final KVDataPartitioner<String> dataPartitioner;
 
-	public static void startApplication(LocalKVDataManager<String, String> localDataManager,
-			HashBasedRingKVDataPartitioner<String> dataPartitioner) throws Exception {
+	public KVCommandLineInterface(KVDataManager<String, String> dataManager, 
+			KVDataPartitioner<String> dataPartitioner) {
+		this.dataManager = dataManager;
+		this.dataPartitioner = dataPartitioner;
+	}
+	
+	
+	public void startInterface() {
 		
 		//Display help messages, feel free to modify later 
 		System.out.println("------ There are five operations allowed ------");
@@ -41,50 +50,49 @@ public class MP2 {
 				System.out.println("------ Exiting program ------");
 				break;
 			}
-			readUserInput(localDataManager,dataPartitioner,userInput);
+			readUserInput(userInput);
 		}
 		scanner.close();
 	}
 	
-	public static void readUserInput(LocalKVDataManager<String, String> localDataManager,
-			HashBasedRingKVDataPartitioner<String> dataPartitioner,String userInput ) throws Exception {
+	public void readUserInput(String userInput) {
 
 			String[] parameters = userInput.split(" ");
-			if(parameters[0] == "SET") {
+			if(parameters[0].equals("SET")) {
 				if(parameters.length >= 3) {
 					//The value of Set could contain spaces
 					String key = parameters[1];
 					int valueIndex = userInput.indexOf(" ", userInput.indexOf(" ") + 1) + 1;
 					String value = userInput.substring(valueIndex);
-					handleSetOperation(localDataManager,key,value);
+					handleSetOperation(key,value);
 				}else {
 					System.err.println("Invalid input: " + userInput);
 					System.err.println("Invalid argument numbers, use --help to check for valid input");
 				} 
-			}else if(parameters[0] == "GET") {
+			}else if(parameters[0].equals("GET")) {
 				if(parameters.length == 2) {
-					handleGetOperation(localDataManager,parameters[1]);
+					handleGetOperation(parameters[1]);
 				}else {
 					System.err.println("Invalid input: " + userInput);
 					System.err.println("Invalid argument numbers, use --help to check for valid input");
 				}
-			}else if(parameters[0] == "OWNERS") {
+			}else if(parameters[0].equals("OWNERS")) {
 				if(parameters.length == 2) {
-					handleOwnersOperation(dataPartitioner,parameters[1]);
+					handleOwnersOperation(parameters[1]);
 				}else {
 					System.err.println("Invalid input: " + userInput);
 					System.err.println("Invalid argument numbers, use --help to check for valid input");
 				}
-			}else if(parameters[0] == "LIST_LOCAL") {
+			}else if(parameters[0].equals("LIST_LOCAL")) {
 				if(parameters.length == 1) {
-					handleListLocalOperation(localDataManager);
+					handleListLocalOperation();
 				}else {
 					System.err.println("Invalid input: " + userInput);
 					System.err.println("Invalid argument numbers, use --help to check for valid input");
 				}
-			}else if(parameters[0] == "BATCH") {
+			}else if(parameters[0].equals("BATCH")) {
 				if(parameters.length == 3) {
-					handleBatchOperation(localDataManager,dataPartitioner,parameters[1],parameters[2]);
+					handleBatchOperation(parameters[1],parameters[2]);
 				}else {
 					System.err.println("Invalid input: " + userInput);
 					System.err.println("Invalid argument numbers, use --help to check for valid input");
@@ -94,8 +102,8 @@ public class MP2 {
 			}
 	}
 	
-	public static void handleSetOperation(LocalKVDataManager<String, String> localDataManager,String key, String value) {
-		boolean success = localDataManager.write(key, value);
+	public void handleSetOperation(String key, String value) {
+		boolean success = this.dataManager.write(key, value);
 		if(success) {
 			System.out.println("SET OK");
 		}else {
@@ -103,8 +111,8 @@ public class MP2 {
 		}
 	}
 	
-	public static void handleGetOperation(LocalKVDataManager<String, String> localDataManager,String key) {
-		Pair<Long, String> readResult = localDataManager.read(key);
+	public void handleGetOperation(String key) {
+		Pair<Long, String> readResult = this.dataManager.read(key);
 		if(readResult != null) {
 			System.out.println("Found: "+ readResult.getRight());
 		}else {
@@ -112,27 +120,36 @@ public class MP2 {
 		}
 	}
 	
-	public static void handleOwnersOperation(HashBasedRingKVDataPartitioner<String> dataPartitioner, String key) {
-		Process primaryPartition = (Process) dataPartitioner.getPrimaryPartition(key);
+	public void handleOwnersOperation(String key) {
+		Process primaryPartition = this.dataPartitioner.getPrimaryPartition(key);
 		Set<Process> replicas = dataPartitioner.getReplicas(primaryPartition);
+		replicas.add(primaryPartition);
 		for(Process p : replicas) {
-			System.out.print(p.getUUID());
+			System.out.print(extractVMId(p)); // TODO change UUID to VM Id.
 			System.out.print(" ");
 		}
 		System.out.print("\n");
 	}
 	
-	public static void handleListLocalOperation(LocalKVDataManager<String, String> localDataManager) {
-		Set<Pair<Long, String>> localData = localDataManager.list_local();
-		for(Pair<Long, String> p : localData) {
-			System.out.println(p.getRight());
+	private String extractVMId(Process process) {
+		String hostname = process.getInetAddress().getHostName();
+		if (hostname.length() < 17) {
+			return process.getDisplayName();
+		} else {
+			// This case is for when running on localhost.
+			return hostname.substring(15, 17);
+		}
+	}
+	
+	public void handleListLocalOperation() {
+		Set<String> localData = this.dataManager.listLocal();
+		for(String key : localData) {
+			System.out.println(key);
 		}
 		System.out.println("END LIST");
 	}
 	
-	public static void handleBatchOperation(LocalKVDataManager<String, String> localDataManager,
-			HashBasedRingKVDataPartitioner<String> dataPartitioner,
-			String commandFile,String outputFile) throws Exception {
+	public void handleBatchOperation(String commandFile,String outputFile) {
 		
 		//Read command file 
 		String line = null;
@@ -143,20 +160,20 @@ public class MP2 {
             PrintStream outputStream = new PrintStream(new BufferedOutputStream(new FileOutputStream(outputFile)), true);
             System.setOut(outputStream);
             while((line = bufferedReader.readLine()) != null) {
-            	readUserInput(localDataManager,dataPartitioner,line);
+            	readUserInput(line);
             }   
             bufferedReader.close();         
-            //Restore stdout
-            System.setOut(System.out);
         }
         catch(FileNotFoundException ex) {
             System.err.println("Unable to open file '" + commandFile + "'");                
         }
         catch(IOException ex) {
             System.err.println( "Error reading file '" + commandFile + "'");
-            ex.printStackTrace();
+            // ex.printStackTrace(); // Commented out by bhopesh, printStackTrace goes to stdout which we dont want.
+        } finally {
+        	//Restore stdout
+            System.setOut(System.out);
         }
 		
 	}
-	
 }

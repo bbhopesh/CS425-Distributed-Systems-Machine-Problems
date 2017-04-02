@@ -15,4 +15,6 @@ public interface KVRawDataManager<K, V> {
 	public KVRawOpResult<Boolean> write(K key, V value, long timestamp, Set<Process> writeTo, int W, int requestTimeout); // TODO some exception to reply that write failed.
 	
 	public KVRawOpResult<Boolean> delete(K key, Set<Process> deleteFrom, int D, int requestTimeout); // TODO some exception to reply that delete failed.
+	
+	public Set<K> listLocal();
 }

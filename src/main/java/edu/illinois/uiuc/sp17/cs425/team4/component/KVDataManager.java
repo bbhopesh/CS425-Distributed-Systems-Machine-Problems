@@ -17,6 +17,6 @@ public interface KVDataManager<K, V> {
 	
 	public boolean delete(K key); // TODO some exception to reply that delete failed.
 	
-	public Set<Pair<Long,V>> list_local();
+	public Set<K> listLocal();
 	
 }
