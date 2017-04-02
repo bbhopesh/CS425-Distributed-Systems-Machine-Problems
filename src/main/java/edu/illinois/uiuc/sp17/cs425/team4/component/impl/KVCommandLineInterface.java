@@ -31,17 +31,7 @@ public class KVCommandLineInterface {
 	public void startInterface() {
 		
 		//Display help messages, feel free to modify later 
-		System.out.println("------ There are five operations allowed ------");
-		System.out.println("------ SET, GET, OWNER, LIST_LOCAL, BATCH ------");
-		System.out.println("------ Each parameter is separated by space ------");
-		System.out.println("------ SET KEY VALUE  ------");
-		System.out.println("------ GET KEY ------");
-		System.out.println("------ OWNERS KEY ------");
-		System.out.println("------ LIST_LOCAL ------");
-		System.out.println("------ BATCH COMMAND_FILE OUTPUT_FILE ------");
-		System.out.println("------------------------------------------------");
-		System.out.println("------ Use keyword EXIT to exit the program ------");
-
+		displayHelpMsg();
 		//Read and parse user input 
 		Scanner scanner = new Scanner(System.in);
 		while(true) {
@@ -53,6 +43,19 @@ public class KVCommandLineInterface {
 			readUserInput(userInput);
 		}
 		scanner.close();
+	}
+	
+	public void displayHelpMsg() {
+		System.out.println("------ There are five operations allowed ------");
+		System.out.println("------ SET, GET, OWNER, LIST_LOCAL, BATCH ------");
+		System.out.println("------ Each parameter is separated by space ------");
+		System.out.println("------ SET KEY VALUE  ------");
+		System.out.println("------ GET KEY ------");
+		System.out.println("------ OWNERS KEY ------");
+		System.out.println("------ LIST_LOCAL ------");
+		System.out.println("------ BATCH COMMAND_FILE OUTPUT_FILE ------");
+		System.out.println("------------------------------------------------");
+		System.out.println("------ Use keyword EXIT to exit the program ------");		
 	}
 	
 	public void readUserInput(String userInput) {
@@ -97,6 +100,13 @@ public class KVCommandLineInterface {
 					System.err.println("Invalid input: " + userInput);
 					System.err.println("Invalid argument numbers, use --help to check for valid input");
 				}	
+			}else if(parameters[0].equals("--help")) {
+				if(parameters.length == 1) {
+					displayHelpMsg();
+				}else {
+					System.err.println("Invalid input: " + userInput);
+					System.err.println("Invalid argument numbers, use --help to check for valid input");
+				}
 			}else {
 				System.err.println("Invalid key words, use --help to check for valid input");
 			}
@@ -121,14 +131,17 @@ public class KVCommandLineInterface {
 	}
 	
 	public void handleOwnersOperation(String key) {
-		Process primaryPartition = this.dataPartitioner.getPrimaryPartition(key);
-		Set<Process> replicas = dataPartitioner.getReplicas(primaryPartition);
-		replicas.add(primaryPartition);
-		for(Process p : replicas) {
-			System.out.print(extractVMId(p)); // TODO change UUID to VM Id.
-			System.out.print(" ");
+		Pair<Long, String> result = this.dataManager.read(key);
+		if(result != null) {
+			Process primaryPartition = this.dataPartitioner.getPrimaryPartition(key);
+			Set<Process> replicas = dataPartitioner.getReplicas(primaryPartition);
+			replicas.add(primaryPartition);
+			for(Process p : replicas) {
+				System.out.print(extractVMId(p)); // TODO change UUID to VM Id.
+				System.out.print(" ");
+			}
+			System.out.print("\n");			
 		}
-		System.out.print("\n");
 	}
 	
 	private String extractVMId(Process process) {
@@ -153,6 +166,7 @@ public class KVCommandLineInterface {
 		
 		//Read command file 
 		String line = null;
+        PrintStream stdout = System.out;
 		try {
             FileReader fileReader = new FileReader(commandFile);
             BufferedReader bufferedReader = new BufferedReader(fileReader);
@@ -169,10 +183,10 @@ public class KVCommandLineInterface {
         }
         catch(IOException ex) {
             System.err.println( "Error reading file '" + commandFile + "'");
-            // ex.printStackTrace(); // Commented out by bhopesh, printStackTrace goes to stdout which we dont want.
+            ex.printStackTrace();
         } finally {
         	//Restore stdout
-            System.setOut(System.out);
+            System.setOut(stdout);
         }
 		
 	}
