@@ -1,4 +1,6 @@
-package edu.illinois.uiuc.sp17.cs425.team4.component;
+package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
+
+import edu.illinois.uiuc.sp17.cs425.team4.component.Codec;
 
 public class PlainVanillaStringCodec implements Codec<String> {
 

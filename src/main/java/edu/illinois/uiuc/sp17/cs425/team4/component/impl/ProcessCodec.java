@@ -1,5 +1,6 @@
-package edu.illinois.uiuc.sp17.cs425.team4.component;
+package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
 
+import edu.illinois.uiuc.sp17.cs425.team4.component.Codec;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 
 public class ProcessCodec implements Codec<Process> {
