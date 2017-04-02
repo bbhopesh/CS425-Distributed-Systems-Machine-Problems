@@ -45,7 +45,7 @@ public class KVCommandLineInterface {
 		scanner.close();
 	}
 	
-	public void displayHelpMsg() {
+	private void displayHelpMsg() {
 		System.out.println("------ There are five operations allowed ------");
 		System.out.println("------ SET, GET, OWNER, LIST_LOCAL, BATCH ------");
 		System.out.println("------ Each parameter is separated by space ------");
@@ -58,7 +58,7 @@ public class KVCommandLineInterface {
 		System.out.println("------ Use keyword EXIT to exit the program ------");		
 	}
 	
-	public void readUserInput(String userInput) {
+	private void readUserInput(String userInput) {
 
 			String[] parameters = userInput.split(" ");
 			if(parameters[0].equals("SET")) {
@@ -112,7 +112,7 @@ public class KVCommandLineInterface {
 			}
 	}
 	
-	public void handleSetOperation(String key, String value) {
+	private void handleSetOperation(String key, String value) {
 		boolean success = this.dataManager.write(key, value);
 		if(success) {
 			System.out.println("SET OK");
@@ -121,7 +121,7 @@ public class KVCommandLineInterface {
 		}
 	}
 	
-	public void handleGetOperation(String key) {
+	private void handleGetOperation(String key) {
 		Pair<Long, String> readResult = this.dataManager.read(key);
 		if(readResult != null) {
 			System.out.println("Found: "+ readResult.getRight());
@@ -130,7 +130,7 @@ public class KVCommandLineInterface {
 		}
 	}
 	
-	public void handleOwnersOperation(String key) {
+	private void handleOwnersOperation(String key) {
 		Pair<Long, String> result = this.dataManager.read(key);
 		if(result != null) {
 			Process primaryPartition = this.dataPartitioner.getPrimaryPartition(key);
@@ -154,7 +154,7 @@ public class KVCommandLineInterface {
 		}
 	}
 	
-	public void handleListLocalOperation() {
+	private void handleListLocalOperation() {
 		Set<String> localData = this.dataManager.listLocal();
 		for(String key : localData) {
 			System.out.println(key);
@@ -162,7 +162,7 @@ public class KVCommandLineInterface {
 		System.out.println("END LIST");
 	}
 	
-	public void handleBatchOperation(String commandFile,String outputFile) {
+	private void handleBatchOperation(String commandFile,String outputFile) {
 		
 		//Read command file 
 		String line = null;
