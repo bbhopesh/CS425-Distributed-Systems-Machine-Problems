@@ -169,7 +169,7 @@ public class KVServerD {
 	}
 	
 	private static void initializeConfiguration() throws IOException {
-		peerCount = 5;
+		peerCount = 10;
 		numFailures = 2;
 		mBytes = 8;
 		kvRequestTimeout = 1000;

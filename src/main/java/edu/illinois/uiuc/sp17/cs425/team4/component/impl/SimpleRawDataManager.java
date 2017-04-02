@@ -92,9 +92,8 @@ public class SimpleRawDataManager<K, V> implements KVRawDataManager<K, V>, Messa
 			}
 			inProgress.keySet().removeAll(doneProcesses);
 		}
-		
 		// Return
-		return this.model.createKVRawOpResult(successfulReads == R, completed, failures, inProgress);
+		return this.model.createKVRawOpResult(successfulReads >= R, completed, failures, inProgress);
 	}
 	
 	private Future<Pair<Long, V>> submitRead(K key, long asOfTimestamp, Process readFrom, int requestTimeout) {
@@ -160,7 +159,7 @@ public class SimpleRawDataManager<K, V> implements KVRawDataManager<K, V>, Messa
 		}
 		
 		// Return
-		return this.model.createKVRawOpResult(successfulWrites == W, completed, failures, inProgress);
+		return this.model.createKVRawOpResult(successfulWrites >= W, completed, failures, inProgress);
 	}
 	
 	private Future<Boolean> submitWrite(K key, V value, long timestamp, Process writeTo, int requestTimeout) {
@@ -226,7 +225,7 @@ public class SimpleRawDataManager<K, V> implements KVRawDataManager<K, V>, Messa
 		}
 		
 		// Return
-		return this.model.createKVRawOpResult(successfulDeletes == D, completed, failures, inProgress);
+		return this.model.createKVRawOpResult(successfulDeletes >= D, completed, failures, inProgress);
 	}
 
 	private Future<Boolean> submitDelete(K key, Process deleteFrom, int requestTimeout) {

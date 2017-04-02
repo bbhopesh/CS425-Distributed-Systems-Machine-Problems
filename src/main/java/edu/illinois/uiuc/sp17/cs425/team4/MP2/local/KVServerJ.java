@@ -1,18 +1,12 @@
-package edu.illinois.uiuc.sp17.cs425.team4.POC;
+package edu.illinois.uiuc.sp17.cs425.team4.MP2.local;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintStream;
-import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.HashSet;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
@@ -30,7 +24,9 @@ import edu.illinois.uiuc.sp17.cs425.team4.component.ChatApplication;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Codec;
 import edu.illinois.uiuc.sp17.cs425.team4.component.GroupManager;
 import edu.illinois.uiuc.sp17.cs425.team4.component.HashFunction;
+import edu.illinois.uiuc.sp17.cs425.team4.component.KVDataManager;
 import edu.illinois.uiuc.sp17.cs425.team4.component.KVDataPartitioner;
+import edu.illinois.uiuc.sp17.cs425.team4.component.KVRawDataManager;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Messenger;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Multicast;
 import edu.illinois.uiuc.sp17.cs425.team4.component.RingTopology;
@@ -38,13 +34,17 @@ import edu.illinois.uiuc.sp17.cs425.team4.component.impl.AllToAllReliableMultica
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.BasicMulticast;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.CassandraLikeRing;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.IsisTotallyOrderedMC;
+import edu.illinois.uiuc.sp17.cs425.team4.component.impl.KVCommandLineInterface;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.KVRingDataPartitioner;
+import edu.illinois.uiuc.sp17.cs425.team4.component.impl.LocalKVDataManager;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.MessageListenerIdentifierImpl;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.PlainVanillaStringCodec;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.ProcessCodec;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.SHA1HashFunction;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.SWIMFailureDetectorV2;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.SimpleChatApplication;
+import edu.illinois.uiuc.sp17.cs425.team4.component.impl.SimpleKVDataManager;
+import edu.illinois.uiuc.sp17.cs425.team4.component.impl.SimpleRawDataManager;
 import edu.illinois.uiuc.sp17.cs425.team4.component.tcpimpl.TCPMessageAdaptor;
 import edu.illinois.uiuc.sp17.cs425.team4.component.tcpimpl.TCPMessengerBuilder;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
@@ -52,19 +52,20 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.Model;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import edu.illinois.uiuc.sp17.cs425.team4.model.impl.ModelImpl;
 
-/**
- * Main class to demo CP2.
- * 
- * @author bbassi2
- */
 @SuppressWarnings("unused")
-public class CassandraRingTest {
+public class KVServerJ {
 	/** All members of the group. */
 	private static Set<Process> groupMembers = new HashSet<Process>();
 	/** Myself. */
 	private static Process mySelf;
 	/** Number of peers in the group chat. */
 	private static int peerCount;
+	private static int numFailures;
+	private static int mBytes;
+	private static int kvRequestTimeout;
+	private static int kvRetryCount;
+	
+	private static String myName = "J";
 	/** Chat transcript file. */
 	private static String outputFile;
 	/** Config file. */
@@ -89,6 +90,7 @@ public class CassandraRingTest {
 	
 	
 	
+	
 	/**
 	 * Driver code.
 	 * @param args command line args.
@@ -98,47 +100,79 @@ public class CassandraRingTest {
 	 */
 	public static void main(String[] args) throws IOException, ParseException, InterruptedException {
 		// Initialization.
-		peerCount = 10;
-		int mBytes = 8;
-		HashFunction sha1 = new SHA1HashFunction();
+		// reads from command line and set various parameters.
+		//readCommandLine(args);
+		// initialize configuration
+		initializeConfiguration();
+		// intialize grop.
+		initializeGroupMembers();
+		// initialize myself
+		initializeMyself();
+		
+		// Create chat application.
+		// Create a group manager.
+		ExecutorService threadPool = Executors.newFixedThreadPool(100);
+		// Create a messenger to communicate using TCP
+		Messenger messenger = createTCPMessenger(threadPool);
+		messenger.initialize();
+		/*GroupManager groupManager = createGroupManager(messenger, threadPool);
+		waitForEveryoneToComeOnline(messenger, MODEL);
+		Thread.sleep(2000);
+		groupManager.initialize();*/
+		
+		// Create Data partitioner.
+		KVDataPartitioner<String> ringDataPartitioner =  createKVRingDataPartitioner();
+		// create data manager using data partitioner.
+		KVDataManager<String, String> mainDataManager = createMainDataManager(messenger, threadPool, ringDataPartitioner);
+		// Start user interface.
+		KVCommandLineInterface kvCmd = createKVCmd(mainDataManager, ringDataPartitioner);
+		kvCmd.startInterface();
+		// App is done. exit system.
+		System.exit(0);
+	}
+	
+	private static KVCommandLineInterface createKVCmd(KVDataManager<String, String> mainDataManager,
+			KVDataPartitioner<String> ringDataPartitioner) {
+		return new KVCommandLineInterface(mainDataManager, ringDataPartitioner);
+	}
+
+	private static KVDataManager<String, String> createMainDataManager(Messenger messenger, 
+			ExecutorService threadPool, KVDataPartitioner<String> ringDataPartitioner) {
+		// Create local data manager.
+		KVDataManager<String, String> localDataManager = createLocalDataManager();
+		// Create raw data manager using local data manager.
+		KVRawDataManager<String, String> rawDataManager = createRawDataManager(localDataManager, messenger, threadPool);
+		// Create main data manager using a raw manager.
+		return new SimpleKVDataManager<String, String>(rawDataManager, ringDataPartitioner, kvRequestTimeout, kvRetryCount);
+	}
+	
+	private static KVDataPartitioner<String> createKVRingDataPartitioner() {
+		// Create Ring topology.
+		RingTopology<String> ringTopology = createCassandraLikeRingTopology();
+		return new KVRingDataPartitioner<String>(ringTopology, numFailures);
+	}
+
+	private static RingTopology<String> createCassandraLikeRingTopology() {
+		HashFunction hashFunction = new SHA1HashFunction();
 		Codec<String> strCodec = new PlainVanillaStringCodec();
 		Codec<Process> processCodec = new ProcessCodec();
-		
-		// initialize group.
-		initializeGroupMembers();
-		
-		CassandraLikeRing<String> cassandraLikeRing = 
-				new CassandraLikeRing<String>(groupMembers, sha1, mBytes, strCodec, processCodec);
-		
-		Process p = groupMembers.iterator().next();
-		System.out.println("P: " + p.getInetAddress().getHostName());
-		
-		for (Entry<BigInteger, Process> x : cassandraLikeRing.processes.entrySet()) {
-			System.out.println(x.getKey() + "=" + x.getValue().getDisplayName());
-		}
-		
-		//System.out.println(cassandraLikeRing.getPredecessors(p, 10));
-		//System.out.println(cassandraLikeRing.getSuccessors(p, 1));
-		KVDataPartitioner<String> dataPartitioner =  new KVRingDataPartitioner<>(cassandraLikeRing, 2);
-		
-		Process primaryPartition = dataPartitioner.getPrimaryPartition("hi");
-		
-		System.out.println(primaryPartition);
-		System.out.println(dataPartitioner.getReplicas(primaryPartition));
-		
+		return new CassandraLikeRing<String>(groupMembers, hashFunction, mBytes, strCodec, processCodec);
+	}
+	private static KVDataManager<String, String> createLocalDataManager() {
+		return new LocalKVDataManager<String, String>();
+	}
+	
+	private static KVRawDataManager<String, String> createRawDataManager(KVDataManager<String, String> localDataManager,
+			Messenger messenger, ExecutorService threadPool) {
+		return new SimpleRawDataManager<String, String>(localDataManager, messenger, MODEL, mySelf, threadPool);
 	}
 	
 	private static void initializeConfiguration() throws IOException {
-		File f = new File(configFile);
-		InputStream is = null;
-		if(f.exists() && !f.isDirectory()) { 
-		    // do something
-			is = new FileInputStream(f);
-		} else {
-			is = CassandraRingTest.class.getClassLoader().getResourceAsStream(configFile);
-		}
-		config = new Properties();
-		config.load(is);
+		peerCount = 10;
+		numFailures = 2;
+		mBytes = 8;
+		kvRequestTimeout = 1000;
+		kvRetryCount = 1;
 	}
 
 	/**
@@ -195,17 +229,6 @@ public class CassandraRingTest {
 	 * @throws UnknownHostException
 	 */
 	private static void initializeGroupMembers() throws UnknownHostException {
-		/*char startName = 'A';
-		for (int i = 1; i <= peerCount; i++) {
-			String name = new StringBuilder().append(startName).toString();
-			Process m = MODEL.createProcess(
-					InetAddress.getByName(String.format(HOSTNAME_TEMPLATE, i)),
-					10005, name, new UUID(new Long(i), 02));
-			groupMembers.add(m);
-			// Increment name
-			startName += 1;
-		}*/
-		
 		char startName = 'A';
 		int port = 10005;
 		for (int i = 1; i <= peerCount; i++) {
@@ -225,9 +248,15 @@ public class CassandraRingTest {
 	 * @throws UnknownHostException 
 	 */
 	private static void initializeMyself() throws UnknownHostException {
-		String hostname = InetAddress.getLocalHost().getHostName();
+		/*String hostname = InetAddress.getLocalHost().getHostName();
 		for (Process p: groupMembers) {
 			if (p.getInetAddress().getHostName().equals(hostname)) {
+				mySelf = p;
+			}
+		}*/
+		
+		for (Process p: groupMembers) {
+			if (p.getDisplayName().equals(myName)) {
 				mySelf = p;
 			}
 		}

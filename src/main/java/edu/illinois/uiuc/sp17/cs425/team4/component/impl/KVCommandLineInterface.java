@@ -134,10 +134,10 @@ public class KVCommandLineInterface {
 		Pair<Long, String> result = this.dataManager.read(key);
 		if(result != null) {
 			Process primaryPartition = this.dataPartitioner.getPrimaryPartition(key);
-			Set<Process> replicas = dataPartitioner.getReplicas(primaryPartition);
+			Set<Process> replicas = this.dataPartitioner.getReplicas(primaryPartition);
 			replicas.add(primaryPartition);
 			for(Process p : replicas) {
-				System.out.print(extractVMId(p)); // TODO change UUID to VM Id.
+				System.out.print(extractVMId(p));
 				System.out.print(" ");
 			}
 			System.out.print("\n");			
@@ -147,9 +147,9 @@ public class KVCommandLineInterface {
 	private String extractVMId(Process process) {
 		String hostname = process.getInetAddress().getHostName();
 		if (hostname.length() < 17) {
+			// This case is for when running on localhost.
 			return process.getDisplayName();
 		} else {
-			// This case is for when running on localhost.
 			return hostname.substring(15, 17);
 		}
 	}
