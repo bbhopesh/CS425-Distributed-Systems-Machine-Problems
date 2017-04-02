@@ -18,27 +18,20 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 
 public class MP2 {
 
-	public static void main(String[] args) throws Exception {
+	public static void startApplication(LocalKVDataManager<String, String> localDataManager,
+			HashBasedRingKVDataPartitioner<String> dataPartitioner) throws Exception {
 		
-		//Display help messages if prompted, feel free to modify later 
-		if(args.length == 1) {
-			if(args[0].equals("help")) {
-				System.out.println("------ There are five operations allowed ------");
-				System.out.println("------ SET, GET, OWNER, LIST_LOCAL, BATCH ------");
-				System.out.println("------ Each parameter is separated by space ------");
-				System.out.println("------ SET KEY VALUE  ------");
-				System.out.println("------ GET KEY ------");
-				System.out.println("------ OWNERS KEY ------");
-				System.out.println("------ LIST_LOCAL ------");
-				System.out.println("------ BATCH COMMAND_FILE OUTPUT_FILE ------");
-				System.out.println("------------------------------------------------");
-				System.out.println("------ Use keyword EXIT to exit the program ------");
-			}
-		}
-		
-		//Initialize LocalKVDataManager
-		LocalKVDataManager<String, String> localDataManager = new LocalKVDataManager<String, String>();
-		HashBasedRingKVDataPartitioner<String> dataPartitioner = new HashBasedRingKVDataPartitioner<String>(null, 0, null, null, null, null);
+		//Display help messages, feel free to modify later 
+		System.out.println("------ There are five operations allowed ------");
+		System.out.println("------ SET, GET, OWNER, LIST_LOCAL, BATCH ------");
+		System.out.println("------ Each parameter is separated by space ------");
+		System.out.println("------ SET KEY VALUE  ------");
+		System.out.println("------ GET KEY ------");
+		System.out.println("------ OWNERS KEY ------");
+		System.out.println("------ LIST_LOCAL ------");
+		System.out.println("------ BATCH COMMAND_FILE OUTPUT_FILE ------");
+		System.out.println("------------------------------------------------");
+		System.out.println("------ Use keyword EXIT to exit the program ------");
 
 		//Read and parse user input 
 		Scanner scanner = new Scanner(System.in);
@@ -51,8 +44,6 @@ public class MP2 {
 			readUserInput(localDataManager,dataPartitioner,userInput);
 		}
 		scanner.close();
-		
-		
 	}
 	
 	public static void readUserInput(LocalKVDataManager<String, String> localDataManager,
