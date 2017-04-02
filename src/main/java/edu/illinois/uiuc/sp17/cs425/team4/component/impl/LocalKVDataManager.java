@@ -2,6 +2,7 @@ package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
 
 import java.util.Comparator;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
@@ -72,6 +73,12 @@ public class LocalKVDataManager<K,V> implements KVDataManager<K, V> {
 				return -1*o1.compareTo(o2);
 			}
 		};
+	}
+
+	@Override
+	public Set<Pair<Long, V>> list_local() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }
