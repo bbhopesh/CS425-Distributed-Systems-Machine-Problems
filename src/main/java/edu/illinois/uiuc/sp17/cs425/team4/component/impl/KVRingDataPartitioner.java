@@ -11,11 +11,11 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 public class KVRingDataPartitioner<K> implements KVDataPartitioner<K> {
 	
 	private final RingTopology<K> ringTopology;
-	private final int numFailures;
+	private final int maxFailures;
 
-	public KVRingDataPartitioner(RingTopology<K> ringTopology, int numFailures) {
+	public KVRingDataPartitioner(RingTopology<K> ringTopology, int maxFailures) {
 		this.ringTopology = ringTopology;
-		this.numFailures = numFailures;
+		this.maxFailures = maxFailures;
 	}
 	
 	
@@ -56,7 +56,7 @@ public class KVRingDataPartitioner<K> implements KVDataPartitioner<K> {
 
 	@Override
 	public int numberOfReplicas() {
-		return this.numFailures;
+		return this.maxFailures;
 	}
 
 }

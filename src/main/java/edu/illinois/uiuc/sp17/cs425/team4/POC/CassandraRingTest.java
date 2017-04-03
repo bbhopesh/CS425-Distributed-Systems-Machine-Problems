@@ -113,7 +113,7 @@ public class CassandraRingTest {
 		Process p = groupMembers.iterator().next();
 		System.out.println("P: " + p.getInetAddress().getHostName());
 		
-		for (Entry<BigInteger, Process> x : cassandraLikeRing.processes.entrySet()) {
+		for (Entry<BigInteger, Process> x : cassandraLikeRing.getProcessMapping().entrySet()) {
 			System.out.println(x.getKey() + "=" + x.getValue().getDisplayName());
 		}
 		

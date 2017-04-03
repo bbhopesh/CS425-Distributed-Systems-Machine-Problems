@@ -1,6 +1,7 @@
 package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
@@ -199,8 +200,7 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 
 
 	@Override
-	public Set<K> listLocal() {
-		return this.rawDataManager.listLocal();
+	public Map<K, NavigableMap<Long, V>> getLocalSnapshot() {
+		return this.rawDataManager.getLocalSnapshot();
 	}
-
 }

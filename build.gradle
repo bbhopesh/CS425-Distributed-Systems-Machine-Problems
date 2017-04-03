@@ -41,8 +41,9 @@ task myTar(type: Tar) {
 	
 	into("lib") {
 		from configurations.compile // This puts all compile time dependencies in the lib folder.
-		from "build/libs/"  
-	}
+		from "build/libs/"
+		from "kvbatchfile" 
+	}	
 }
 
 myTar.dependsOn ':jar'

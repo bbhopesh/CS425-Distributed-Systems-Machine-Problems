@@ -61,6 +61,7 @@ public class KVCommandLineInterface {
 	private void readUserInput(String userInput) {
 
 			String[] parameters = userInput.split(" ");
+			if (parameters.length < 1) return;
 			if(parameters[0].equals("SET")) {
 				if(parameters.length >= 3) {
 					//The value of Set could contain spaces
@@ -141,6 +142,8 @@ public class KVCommandLineInterface {
 				System.out.print(" ");
 			}
 			System.out.print("\n");			
+		} else {
+			System.out.println("Not found"); // TODO not in MP interface but still useful.
 		}
 	}
 	
@@ -155,8 +158,7 @@ public class KVCommandLineInterface {
 	}
 	
 	private void handleListLocalOperation() {
-		Set<String> localData = this.dataManager.listLocal();
-		for(String key : localData) {
+		for(String key : this.dataManager.getLocalSnapshot().keySet()) {
 			System.out.println(key);
 		}
 		System.out.println("END LIST");
@@ -187,6 +189,7 @@ public class KVCommandLineInterface {
         } finally {
         	//Restore stdout
             System.setOut(stdout);
+            System.err.println("Done with BATCH operation."); // TODO not part of interface but still useful.
         }
 		
 	}

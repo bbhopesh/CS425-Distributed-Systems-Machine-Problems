@@ -1,6 +1,7 @@
 package edu.illinois.uiuc.sp17.cs425.team4.component;
 
-import java.util.Set;
+import java.util.Map;
+import java.util.NavigableMap;
 
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -17,6 +18,6 @@ public interface KVDataManager<K, V> {
 	
 	public boolean delete(K key); // TODO some exception to reply that delete failed.
 	
-	public Set<K> listLocal();
+	public Map<K, NavigableMap<Long, V>> getLocalSnapshot();
 	
 }

@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -349,8 +350,9 @@ public class SimpleRawDataManager<K, V> implements KVRawDataManager<K, V>, Messa
 	}
 
 	@Override
-	public Set<K> listLocal() {
-		return this.localDataManager.listLocal();
+	public Map<K, NavigableMap<Long, V>> getLocalSnapshot() {
+		return this.localDataManager.getLocalSnapshot();
 	}
+
 
 }

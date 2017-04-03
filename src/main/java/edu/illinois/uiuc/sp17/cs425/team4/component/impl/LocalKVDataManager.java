@@ -1,10 +1,11 @@
 package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
 
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
+import java.util.NavigableMap;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
@@ -81,9 +82,15 @@ public class LocalKVDataManager<K,V> implements KVDataManager<K, V> {
 	}
 
 	@Override
-	public Set<K> listLocal() {
-		Set<K> keys = new HashSet<K>(data.keySet());
-		return Collections.unmodifiableSet(keys);
+	public Map<K, NavigableMap<Long, V>> getLocalSnapshot() {
+		Map<K, NavigableMap<Long, V>> dataSnapshot =  new HashMap<K, NavigableMap<Long, V>>();
+		for (Entry<K, ConcurrentNavigableMap<Long, V>> dataEntry: this.data.entrySet()) {
+			NavigableMap<Long, V> values = new TreeMap<Long,V>(createDecLongComp());
+			for (Entry<Long, V> valueEntry: dataEntry.getValue().entrySet()) {
+				values.put(valueEntry.getKey(), valueEntry.getValue());
+			}
+			dataSnapshot.put(dataEntry.getKey(), values);
+		}
+		return dataSnapshot;
 	}
-
 }

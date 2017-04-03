@@ -2,6 +2,7 @@ package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.log4j.Logger;
 
 import edu.illinois.uiuc.sp17.cs425.team4.component.Codec;
 import edu.illinois.uiuc.sp17.cs425.team4.component.HashFunction;
@@ -18,8 +20,8 @@ import edu.illinois.uiuc.sp17.cs425.team4.component.RingTopology;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 
 public class CassandraLikeRing<K> implements RingTopology<K> {
-	
-	public final NavigableMap<BigInteger, Process> processes;
+	private final static Logger LOG = Logger.getLogger(CassandraLikeRing.class.getName());
+	private final NavigableMap<BigInteger, Process> processes;
 	private final HashFunction hashFunction;
 	private final int mBytes;
 	private final Codec<K> keyCodec;
@@ -131,11 +133,13 @@ public class CassandraLikeRing<K> implements RingTopology<K> {
 
 	@Override
 	public void addProcesses(Set<Process> tobeAdded) {
+		LOG.debug(String.format("Adding to ring: %s", tobeAdded));
 		addProcesses(tobeAdded, this.processes);
 	}
 
 	@Override
 	public void removeProcesses(Set<Process> tobeRemoved) {
+		LOG.debug(String.format("Removing from ring: %s", tobeRemoved));
 		removeProcesses(tobeRemoved, this.processes);
 	}
 
@@ -146,5 +150,10 @@ public class CassandraLikeRing<K> implements RingTopology<K> {
 										this.mBytes,
 										this.keyCodec,
 										this.processCodec);
+	}
+	
+	public Map<BigInteger, Process> getProcessMapping() {
+		return Collections.unmodifiableMap(this.processes);
+		
 	}
 }

@@ -1,8 +1,11 @@
 package edu.illinois.uiuc.sp17.cs425.team4.MP2.local;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -20,6 +23,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.tuple.Pair;
 
+import edu.illinois.uiuc.sp17.cs425.team4.MP1.CP2FailureDetector;
 import edu.illinois.uiuc.sp17.cs425.team4.component.ChatApplication;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Codec;
 import edu.illinois.uiuc.sp17.cs425.team4.component.GroupManager;
@@ -36,6 +40,7 @@ import edu.illinois.uiuc.sp17.cs425.team4.component.impl.CassandraLikeRing;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.IsisTotallyOrderedMC;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.KVCommandLineInterface;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.KVRingDataPartitioner;
+import edu.illinois.uiuc.sp17.cs425.team4.component.impl.KVSystemStabilizer;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.LocalKVDataManager;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.MessageListenerIdentifierImpl;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.PlainVanillaStringCodec;
@@ -51,6 +56,7 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Model;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import edu.illinois.uiuc.sp17.cs425.team4.model.impl.ModelImpl;
+
 
 @SuppressWarnings("unused")
 public class KVServerF {
@@ -69,7 +75,7 @@ public class KVServerF {
 	/** Chat transcript file. */
 	private static String outputFile;
 	/** Config file. */
-	private static String configFile = "chatapp.properties";
+	private static String configFile = "kvstore.properties";
 	/** Configuration. */
 	private static Properties config;
 	/** Model. */
@@ -80,8 +86,10 @@ public class KVServerF {
 	private static final String SWIM2_PROTOCOL_MIN_PERIOD = "swimV2.protocol.min.period";
 	private static final String SWIM2_PING_TARGETS = "swimV2.ping.targets";
 	private static final String SWIM2_ACK_TIMEOUT = "swimV2.ack.timeout";
-	private static final String ISIS_FIRST_ROUND_TIMEOUT = "isis.first.round.timeout";
-	
+	private static final String KV_MAX_FAILURES = "kv.max.failures";
+	private static final String KV_RING_mBYTES = "kv.ring.mBytes";
+	private static final String KV_REQUEST_TIMEOUT = "kv.request.timeout";
+	private static final String KV_RETRY_COUNT = "kv.retry.count";
 	/** Short and long name of peer count option. */
 	private static Pair<String,String> peerCountOption = Pair.of("c", "peerCount");
 	/** Short and long name of output file option. */
@@ -101,7 +109,7 @@ public class KVServerF {
 	public static void main(String[] args) throws IOException, ParseException, InterruptedException {
 		// Initialization.
 		// reads from command line and set various parameters.
-		//readCommandLine(args);
+		readCommandLine(args);
 		// initialize configuration
 		initializeConfiguration();
 		// intialize grop.
@@ -115,15 +123,23 @@ public class KVServerF {
 		// Create a messenger to communicate using TCP
 		Messenger messenger = createTCPMessenger(threadPool);
 		messenger.initialize();
-		/*GroupManager groupManager = createGroupManager(messenger, threadPool);
+		System.out.println(groupMembers);
+		System.out.println(mySelf);
+		GroupManager groupManager = createGroupManager(messenger, threadPool);
 		waitForEveryoneToComeOnline(messenger, MODEL);
 		Thread.sleep(2000);
-		groupManager.initialize();*/
+		groupManager.initialize();
 		
+		// Create ring topology
+		RingTopology<String> ringTopology = createCassandraLikeRingTopology();
 		// Create Data partitioner.
-		KVDataPartitioner<String> ringDataPartitioner =  createKVRingDataPartitioner();
+		KVDataPartitioner<String> ringDataPartitioner =  createKVRingDataPartitioner(ringTopology);
 		// create data manager using data partitioner.
 		KVDataManager<String, String> mainDataManager = createMainDataManager(messenger, threadPool, ringDataPartitioner);
+		// Create system stabilizer.
+		KVSystemStabilizer<String, String> stabilizer = createSystemStabilizer(ringTopology);
+		// Register on group manager so it can listen for changes and stabilize system accordingly.
+		groupManager.registerGroupChangeListener(stabilizer);
 		// Start user interface.
 		KVCommandLineInterface kvCmd = createKVCmd(mainDataManager, ringDataPartitioner);
 		kvCmd.startInterface();
@@ -131,6 +147,11 @@ public class KVServerF {
 		System.exit(0);
 	}
 	
+	private static KVSystemStabilizer<String, String> createSystemStabilizer(RingTopology<String> ringTopology) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 	private static KVCommandLineInterface createKVCmd(KVDataManager<String, String> mainDataManager,
 			KVDataPartitioner<String> ringDataPartitioner) {
 		return new KVCommandLineInterface(mainDataManager, ringDataPartitioner);
@@ -146,9 +167,7 @@ public class KVServerF {
 		return new SimpleKVDataManager<String, String>(rawDataManager, ringDataPartitioner, kvRequestTimeout, kvRetryCount);
 	}
 	
-	private static KVDataPartitioner<String> createKVRingDataPartitioner() {
-		// Create Ring topology.
-		RingTopology<String> ringTopology = createCassandraLikeRingTopology();
+	private static KVDataPartitioner<String> createKVRingDataPartitioner(RingTopology<String> ringTopology) {
 		return new KVRingDataPartitioner<String>(ringTopology, numFailures);
 	}
 
@@ -168,27 +187,21 @@ public class KVServerF {
 	}
 	
 	private static void initializeConfiguration() throws IOException {
-		peerCount = 10;
-		numFailures = 2;
-		mBytes = 8;
-		kvRequestTimeout = 1000;
-		kvRetryCount = 1;
-	}
-
-	/**
-	 * Create chat application.
-	 * @param multicast multicast to be used for chat.
-	 * @return chat application.
-	 * @throws FileNotFoundException if cannot find the file to store chat transcript.s
-	 */
-	private static ChatApplication createChatApplication(Multicast multicast) throws FileNotFoundException {
-		if (outputFile == null) {
-			return new SimpleChatApplication(multicast, mySelf);
+		File f = new File(configFile);
+		InputStream is = null;
+		if(f.exists() && !f.isDirectory()) { 
+		    // do something
+			is = new FileInputStream(f);
 		} else {
-			FileOutputStream fos = new FileOutputStream(outputFile, false);
-			PrintStream printStream = new PrintStream(fos);
-			return new SimpleChatApplication(multicast, mySelf, printStream);
+			is = CP2FailureDetector.class.getClassLoader().getResourceAsStream(configFile);
 		}
+		config = new Properties();
+		config.load(is);
+		
+		numFailures = Integer.valueOf(config.getProperty(KV_MAX_FAILURES));
+		mBytes = Integer.valueOf(config.getProperty(KV_RING_mBYTES));
+		kvRequestTimeout = Integer.valueOf(config.getProperty(KV_REQUEST_TIMEOUT));
+		kvRetryCount = Integer.valueOf(config.getProperty(KV_RETRY_COUNT));;
 	}
 
 	
@@ -296,42 +309,6 @@ public class KVServerF {
 									.setBacklog(50)
 									.setMessageAdaptor(new TCPMessageAdaptor());
 		return builder.build();
-	}
-	
-	/**
-	 * Create basic multicast.
-	 * @param groupManager Group Manager.
-	 * @param messenger Messenger
-	 * @return Multicast.
-	 */
-	private static Multicast createBasicMulticast(GroupManager groupManager, Messenger messenger) {
-		BasicMulticast bmc = new BasicMulticast(groupManager, messenger);
-		//groupManager.registerGroupChangeListener(bmc);
-		return bmc;
-	}
-	
-	/**
-	 * Create reliable multicast.
-	 * @param basicMulticast basic multicast.
-	 * @param groupManager Group Manager.
-	 * @return Reliable multicast.
-	 */
-	private static Multicast createReliableMulticast(Multicast basicMulticast, GroupManager groupManager) {
-		return new AllToAllReliableMulticast(basicMulticast, groupManager);
-	}
-	
-	/**
-	 * Create a multicast enforcing total-order
-	 * @param reliableMulticast
-	 * @param messenger
-	 * @param groupManager
-	 * @return Totally Ordered Multicast
-	 */
-	private static Multicast createTOMulticast(Multicast reliableMulticast,Messenger messenger, GroupManager groupManager) {
-		int firstRoundTimeout = Integer.valueOf(config.getProperty(ISIS_FIRST_ROUND_TIMEOUT));
-		IsisTotallyOrderedMC totalMC = new IsisTotallyOrderedMC(reliableMulticast,messenger,groupManager, firstRoundTimeout);
-		groupManager.registerGroupChangeListener(totalMC);
-		return totalMC;
 	}
 	
 	private static void waitForEveryoneToComeOnline(Messenger messenger, Model model) {
