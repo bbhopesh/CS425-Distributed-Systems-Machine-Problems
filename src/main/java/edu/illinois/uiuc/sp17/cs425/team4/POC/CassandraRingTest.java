@@ -98,7 +98,7 @@ public class CassandraRingTest {
 	 */
 	public static void main(String[] args) throws IOException, ParseException, InterruptedException {
 		// Initialization.
-		peerCount = 10;
+		peerCount = 5;
 		int mBytes = 8;
 		HashFunction sha1 = new SHA1HashFunction();
 		Codec<String> strCodec = new PlainVanillaStringCodec();

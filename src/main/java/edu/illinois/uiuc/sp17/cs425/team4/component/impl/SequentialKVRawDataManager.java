@@ -1,8 +1,6 @@
 package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
 
-import java.io.Serializable;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -27,6 +25,7 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Model;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import edu.illinois.uiuc.sp17.cs425.team4.model.ValuesMessage;
+import edu.illinois.uiuc.sp17.cs425.team4.util.KVUtils;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message.MessageType;
 
 public class SequentialKVRawDataManager<K, V> implements KVRawDataManager<K, V>, MessageListener {
@@ -126,7 +125,7 @@ public class SequentialKVRawDataManager<K, V> implements KVRawDataManager<K, V>,
 	
 	
 	private KVWriteCallable<K, V> createTaskToWrite(K key, V value, long timestamp, Process writeTo, int requestTimeout) {
-		NavigableMap<Long, V> valueMap = new TreeMap<>(new LongDescComp());
+		NavigableMap<Long, V> valueMap = new TreeMap<>(KVUtils.createDecLongComp());
 		valueMap.put(timestamp, value);
 		Map<K, NavigableMap<Long, V>> data = new HashMap<K, NavigableMap<Long, V>>();
 		data.put(key, valueMap); 
@@ -232,28 +231,57 @@ public class SequentialKVRawDataManager<K, V> implements KVRawDataManager<K, V>,
 	}
 
 	@Override
-	public Map<K, NavigableMap<Long, V>> readBatch(Process readFrom, int requestTimeout) throws Exception {
-		KVReadCallable<K, V> taskToRead = createTaskToRead(new HashSet<K>(), readFrom, requestTimeout); // empty set means read all keys from remote.
-		return taskToRead.call();
+	public KVAsyncOpResult<Boolean> writeBatch(Map<Process, Map<K, NavigableMap<Long, V>>> perProcessData, int requestTimeout) {
+		int successfulWrites = 0; // counter to keep track of no of successful writes.
+		Map<Process, Boolean> completed = new HashMap<Process, Boolean>();
+		Map<Process, Throwable> failures = new HashMap<Process, Throwable>();
+	
+		for (Entry<Process, Map<K, NavigableMap<Long, V>>> entry: perProcessData.entrySet()) {
+			Process writingTo = entry.getKey();
+			Map<K, NavigableMap<Long, V>> data = entry.getValue();
+			KVWriteCallable<K, V> writer = createTaskToWrite(data, writingTo, requestTimeout);
+			try {
+				Boolean successfullyWritten = writer.call();
+				completed.put(writingTo, successfullyWritten);
+				if (successfullyWritten) {
+					successfulWrites++;
+				}
+			} catch(Exception e) {
+				failures.put(writingTo, e);
+			}
+		}
+		// Return
+		return this.model.createKVRawOpResult(successfulWrites == perProcessData.keySet().size(), completed, failures, new HashMap<Process,Future<Boolean>>());
 	}
 
 	@Override
-	public boolean writeBatch(Map<K, NavigableMap<Long, V>> data, Process writeTo, int requestTimeout) throws Exception {
-		KVWriteCallable<K,V> taskToWrite = createTaskToWrite(data, writeTo, requestTimeout);
-		return taskToWrite.call();
+	public KVAsyncOpResult<Map<K, NavigableMap<Long, V>>> readBatch(Map<Process, Set<K>> perProcessKeys, int requestTimeout) {
+		int successfulReads = 0; // counter to keep track of no of successful reads.
+		Map<Process, Map<K, NavigableMap<Long, V>>> completed = new HashMap<>();
+		Map<Process, Throwable> failures = new HashMap<Process, Throwable>();
+	
+		for (Entry<Process, Set<K>> entry: perProcessKeys.entrySet()) {
+			Process readFrom = entry.getKey();
+			Set<K> keysToRead = entry.getValue();
+			KVReadCallable<K, V> reader = createTaskToRead(keysToRead, readFrom, requestTimeout);
+			try {
+				Map<K, NavigableMap<Long, V>> data = reader.call();
+				completed.put(readFrom, data);
+				successfulReads++;
+			} catch(Exception e) {
+				failures.put(readFrom, e);
+			}
+		}
+		// Return
+		return this.model.createKVRawOpResult(successfulReads == perProcessKeys.size(), completed, failures, new HashMap<Process,Future<Map<K, NavigableMap<Long, V>>>>());
 	}
 	
-	private static class LongDescComp implements Comparator<Long>, Serializable {
-		/**
-		 * 
-		 */
-		private static final long serialVersionUID = 4974823438310012936L;
-
-		@Override
-		public int compare(Long o1, Long o2) {
-			return -1*o1.compareTo(o2);
+	@Override
+	public KVAsyncOpResult<Map<K, NavigableMap<Long, V>>> readBatch(Set<Process> readFrom, int requestTimeout) {
+		Map<Process, Set<K>> perProcessKeys = new HashMap<>();
+		for (Process p: readFrom) {
+			perProcessKeys.put(p, new HashSet<>()); // empty set of keys mean read all keys.
 		}
+		return readBatch(perProcessKeys, requestTimeout);
 	}
-
-
 }

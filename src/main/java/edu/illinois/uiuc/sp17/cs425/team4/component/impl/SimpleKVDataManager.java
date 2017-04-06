@@ -1,6 +1,6 @@
 package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
 
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
@@ -14,6 +14,7 @@ import edu.illinois.uiuc.sp17.cs425.team4.component.KVDataPartitioner;
 import edu.illinois.uiuc.sp17.cs425.team4.component.KVRawDataManager;
 import edu.illinois.uiuc.sp17.cs425.team4.model.KVAsyncOpResult;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
+import edu.illinois.uiuc.sp17.cs425.team4.util.KVUtils;
 
 public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 
@@ -24,20 +25,20 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 	private final int requestTimeout;
 	private final int W;
 	private final int R;
-	private final int D;
 	private final int tryCount;
+	private final Process myIdentity;
 
-	public SimpleKVDataManager(KVRawDataManager<K, V> rawDataManager,
+	public SimpleKVDataManager(Process myIdentity,
+							KVRawDataManager<K, V> rawDataManager,
 							KVDataPartitioner<K> dataPartitioner,
 							int requestTimeout, int tryCount) {
+		this.myIdentity = myIdentity;
 		this.rawDataManager = rawDataManager;
 		this.dataPartitioner = dataPartitioner;
 		// Plus 1 for primary partition.
 		this.W = this.dataPartitioner.numberOfReplicas() + 1;
 		// Read from 1.
 		this.R = 1;
-		// delete from all.
-		this.D = this.W;
 		
 		this.requestTimeout = requestTimeout;
 		// Retry read/write/delete these many times if failures keep occuring. 
@@ -73,7 +74,8 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 			LOG.debug("Read succeeded.");
 			return getLatest(readResult);
 		} else {
-			LOG.debug("Read failed.");
+			LOG.debug(String.format("Read failed even after %s tries.", this.tryCount));
+			System.err.println(String.format("Read failed even after %s tries.", this.tryCount));
 			// TODO It's really not clear to me about what should be returned if we don't succeed even after retries.
 			// One thought was to take all the exceptions in raw result, wrap it in one and throw, and let caller deal with it.
 			// Other thought was to just return null because this class is to be used by the user interface directly.
@@ -85,7 +87,7 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 	
 	private KVAsyncOpResult<Pair<Long, V>> readOnce(K key, long asOfTimestamp) {
 		// Get partitions.
-		Set<Process> partitions = getPartitions(key);
+		Set<Process> partitions = KVUtils.getAllPartitions(key, this.dataPartitioner);
 		// Read from atleast R of them.
 		KVAsyncOpResult<Pair<Long, V>> readResult = this.rawDataManager.read(key, 
 														asOfTimestamp, 
@@ -128,6 +130,8 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 		if (writeResult.succeeded()) {
 			return true;
 		} else {
+			LOG.debug(String.format("Write failed even after %s tries.", this.tryCount));
+			System.err.println(String.format("Write failed even after %s tries.", this.tryCount));
 			// TODO It's really not clear to me about what should be returned if we don't succeed even after retries.
 			// One thought was to take all the exceptions in raw result, wrap it in one and throw, and let caller deal with it.
 			// Other thought was to just return false because this class is to be used by the user interface directly
@@ -139,9 +143,9 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 		}
 	}
 	
-	public KVAsyncOpResult<Boolean> writeOnce(K key, V value, long timestamp) {
+	private KVAsyncOpResult<Boolean> writeOnce(K key, V value, long timestamp) {
 		// Get partitions.
-		Set<Process> partitions = getPartitions(key);
+		Set<Process> partitions = KVUtils.getAllPartitions(key, this.dataPartitioner);
 		// Write to atleast W of them.
 		KVAsyncOpResult<Boolean> writeResult = this.rawDataManager.write(key, 
 														value, 
@@ -154,19 +158,67 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 	}
 
 	@Override
-	public boolean delete(K key) {
-		KVAsyncOpResult<Boolean> deleteResult;
+	public Map<K, NavigableMap<Long, V>> getLocalSnapshot() {
+		return this.rawDataManager.getLocalSnapshot();
+	}
+
+
+	@Override
+	public Map<K, NavigableMap<Long, V>> readMyData() {
+		KVAsyncOpResult<Map<K, NavigableMap<Long, V>>> readResult;
+		int tries = 0;
+		// Try reading until we succeed.
+		do {
+			readResult = readMyKeysOnce();
+			tries += 1;
+		} while(!readResult.succeeded() && tries < this.tryCount);
+		
+		// Return
+		if (readResult.succeeded()) {
+			LOG.debug("Read succeeded.");
+			Map<K, NavigableMap<Long, V>> myData = new HashMap<>();
+			for (Entry<Process, Map<K, NavigableMap<Long, V>>> entry: readResult.completed().entrySet()) {
+				filterAndAddMyKeys(entry.getValue(), myData);
+			}
+			return myData;
+		} else {
+			LOG.debug(String.format("Read for my keys failed even after %s tries.", this.tryCount));
+			System.err.println(String.format("Read for my keys failed even after %s tries.", this.tryCount));
+			// TODO It's really not clear to me about what should be returned if we don't succeed even after retries.
+			// One thought was to take all the exceptions in raw result, wrap it in one and throw, and let caller deal with it.
+			// Other thought was to just return null because this class is to be used by the user interface directly.
+			// Going with the second approach for now.
+			// If such a situation arises, then we are going to get penalty for MP anyway, so who cares which approach I really use :)
+			return null;
+		}
+	}
+	
+	public KVAsyncOpResult<Map<K, NavigableMap<Long, V>>> readMyKeysOnce() {
+		Set<Process> commonProcesses = this.dataPartitioner.getReplicas(this.myIdentity);
+		commonProcesses.addAll(this.dataPartitioner.replicaOf(this.myIdentity));
+		return this.rawDataManager.readBatch(commonProcesses, this.requestTimeout);
+	}
+
+
+	@Override
+	public boolean writeBatch(Map<K, NavigableMap<Long, V>> data) {
+		KVAsyncOpResult<Boolean> writeResult;
 		int tries = 0;
 		// Try writing until we succeed.
 		do {
-			deleteResult = deleteOnce(key);
+			Map<Process, Map<K, NavigableMap<Long, V>>> processWiseData = 
+					KVUtils.segregateDataProcessWise(data, this.dataPartitioner);
+			writeResult = writeBatchOnce(data, processWiseData);
 			tries += 1;
-		} while(!deleteResult.succeeded() && tries < this.tryCount);
+			data = getUnsuccessfulWrites(writeResult, processWiseData);
+		} while(!writeResult.succeeded() && tries < this.tryCount);
 		
 		// Return
-		if (deleteResult.succeeded()) {
+		if (writeResult.succeeded()) {
 			return true;
 		} else {
+			LOG.debug(String.format("Batch Write failed even after %s tries.", this.tryCount));
+			System.err.println(String.format("Batch Write failed even after %s tries.", this.tryCount));
 			// TODO It's really not clear to me about what should be returned if we don't succeed even after retries.
 			// One thought was to take all the exceptions in raw result, wrap it in one and throw, and let caller deal with it.
 			// Other thought was to just return false because this class is to be used by the user interface directly
@@ -178,29 +230,59 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 		}
 	}
 	
-	public KVAsyncOpResult<Boolean> deleteOnce(K key) {
-		// Get partitions.
-		Set<Process> partitions = getPartitions(key);
-		// Delete from atleast D of partitions.
-		KVAsyncOpResult<Boolean> deleteResult = this.rawDataManager.delete(key, 
-													partitions, 
-													this.D, 
-													this.requestTimeout);
-		// Return.
-		return deleteResult;
+	private KVAsyncOpResult<Boolean> writeBatchOnce(Map<K, NavigableMap<Long, V>> data, Map<Process, Map<K, NavigableMap<Long, V>>> processWiseData) {
+		return this.rawDataManager.writeBatch(processWiseData, this.requestTimeout);
 	}
 	
-	private Set<Process> getPartitions(K key) {
-		Set<Process> partitions = new HashSet<Process>();
-		Process primaryPartition = this.dataPartitioner.getPrimaryPartition(key);
-		partitions.add(primaryPartition);
-		partitions.addAll(this.dataPartitioner.getReplicas(primaryPartition));
-		return partitions;
+	private Map<K, NavigableMap<Long, V>> getUnsuccessfulWrites(KVAsyncOpResult<Boolean> writeResult,
+			Map<Process, Map<K, NavigableMap<Long, V>>> processWiseData) {
+		Map<K, NavigableMap<Long, V>> unsuccessfulWrites = new HashMap<>();
+		
+		for (Entry<Process, Boolean> completed: writeResult.completed().entrySet()) {
+			Process p = completed.getKey();
+			Boolean success = completed.getValue();
+			if (!success) {
+				addAll(processWiseData.get(p), unsuccessfulWrites);
+			}
+		}
+		
+		for (Entry<Process, Throwable> failures: writeResult.failures().entrySet()) {
+			Process p = failures.getKey();
+			addAll(processWiseData.get(p), unsuccessfulWrites);
+		}
+		
+		return unsuccessfulWrites;
 	}
 
 
-	@Override
-	public Map<K, NavigableMap<Long, V>> getLocalSnapshot() {
-		return this.rawDataManager.getLocalSnapshot();
+	private void addAll(Map<K, NavigableMap<Long, V>> add, Map<K, NavigableMap<Long, V>> addTo) {
+		for (Entry<K, NavigableMap<Long, V>> addEntry: add.entrySet()) {
+			K key = addEntry.getKey();
+			NavigableMap<Long, V> values = addEntry.getValue();
+			NavigableMap<Long, V> existingValues = addTo.get(key);
+			if (existingValues == null) {
+				existingValues = new TreeMap<>(KVUtils.createDecLongComp());
+				addTo.put(key, existingValues);
+			}
+			existingValues.putAll(values);
+		}
+		
+	}
+	
+	private void filterAndAddMyKeys(Map<K, NavigableMap<Long, V>> add, Map<K, NavigableMap<Long, V>> addTo) {
+		for (Entry<K, NavigableMap<Long, V>> addEntry: add.entrySet()) {
+			K key = addEntry.getKey();
+			// If I am not partition for the key, ignore it.
+			if (!KVUtils.getAllPartitions(key, dataPartitioner).contains(this.myIdentity)) continue;
+			
+			NavigableMap<Long, V> values = addEntry.getValue();
+			NavigableMap<Long, V> existingValues = addTo.get(key);
+			if (existingValues == null) {
+				existingValues = new TreeMap<>(KVUtils.createDecLongComp());
+				addTo.put(key, existingValues);
+			}
+			existingValues.putAll(values);
+		}
+		
 	}
 }

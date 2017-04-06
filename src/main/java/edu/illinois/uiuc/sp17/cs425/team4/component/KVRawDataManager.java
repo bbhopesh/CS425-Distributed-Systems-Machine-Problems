@@ -17,9 +17,11 @@ public interface KVRawDataManager<K, V> {
 	
 	public KVAsyncOpResult<Boolean> delete(K key, Set<Process> deleteFrom, int D, int requestTimeout);
 	
-	public Map<K, NavigableMap<Long, V>> readBatch(Process readFrom, int requestTimeout) throws Exception;
+	public KVAsyncOpResult<Boolean> writeBatch(Map<Process, Map<K, NavigableMap<Long, V>>> data, int requestTimeout);
 	
-	public boolean writeBatch(Map<K, NavigableMap<Long, V>> data, Process writeTo, int requestTimeout) throws Exception;
+	public KVAsyncOpResult<Map<K, NavigableMap<Long, V>>> readBatch(Map<Process, Set<K>> perProcessKeys, int requestTimeout);
+	
+	public KVAsyncOpResult<Map<K, NavigableMap<Long, V>>> readBatch(Set<Process> readFrom, int requestTimeout);
 	
 	public Map<K, NavigableMap<Long, V>> getLocalSnapshot();
 }

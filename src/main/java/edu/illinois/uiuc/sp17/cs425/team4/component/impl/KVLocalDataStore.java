@@ -1,7 +1,5 @@
 package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
 
-import java.io.Serializable;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -13,6 +11,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
+import edu.illinois.uiuc.sp17.cs425.team4.util.KVUtils;
 import net.jcip.annotations.ThreadSafe;
 
 @ThreadSafe
@@ -25,7 +24,7 @@ public class KVLocalDataStore<K,V> {
 	
 	private NavigableMap<Long,V> read(K key) {
 		if (this.data.containsKey(key)) {
-			NavigableMap<Long,V> values = new TreeMap<Long, V>(createDecLongComp());
+			NavigableMap<Long,V> values = new TreeMap<Long, V>(KVUtils.createDecLongComp());
 			values.putAll(this.data.get(key));
 			return values;
 		} else {
@@ -55,7 +54,7 @@ public class KVLocalDataStore<K,V> {
 	}
 	
 	private void write(K key, NavigableMap<Long, V> values) {
-		ConcurrentNavigableMap<Long, V> timestampedValues = new ConcurrentSkipListMap<Long, V>(createDecLongComp());
+		ConcurrentNavigableMap<Long, V> timestampedValues = new ConcurrentSkipListMap<Long, V>(KVUtils.createDecLongComp());
 		// Atomically add an empty value map if the key is new.
 		ConcurrentNavigableMap<Long, V> previousVal = this.data.putIfAbsent(key, timestampedValues);
 		if (previousVal != null) {
@@ -67,38 +66,15 @@ public class KVLocalDataStore<K,V> {
 	}
 	
 
-	private Comparator<Long> createDecLongComp() {
-		/*return new Comparator<Long>() {
-
-			@Override
-			public int compare(Long o1, Long o2) {
-				return -1*o1.compareTo(o2);
-			}
-		};*/
-		return new LongDescComp();
-	}
-
 	public Map<K, NavigableMap<Long, V>> getSnapshot() {
 		Map<K, NavigableMap<Long, V>> dataSnapshot =  new HashMap<K, NavigableMap<Long, V>>();
 		for (Entry<K, ConcurrentNavigableMap<Long, V>> dataEntry: this.data.entrySet()) {
-			NavigableMap<Long, V> values = new TreeMap<Long,V>(createDecLongComp());
+			NavigableMap<Long, V> values = new TreeMap<Long,V>(KVUtils.createDecLongComp());
 			for (Entry<Long, V> valueEntry: dataEntry.getValue().entrySet()) {
 				values.put(valueEntry.getKey(), valueEntry.getValue());
 			}
 			dataSnapshot.put(dataEntry.getKey(), values);
 		}
 		return dataSnapshot;
-	}
-	
-	private static class LongDescComp implements Comparator<Long>, Serializable {
-		/**
-		 * 
-		 */
-		private static final long serialVersionUID = 4974823438310012936L;
-
-		@Override
-		public int compare(Long o1, Long o2) {
-			return -1*o1.compareTo(o2);
-		}
 	}
 }

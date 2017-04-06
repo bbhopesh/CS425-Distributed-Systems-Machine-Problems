@@ -42,7 +42,6 @@ import edu.illinois.uiuc.sp17.cs425.team4.component.impl.KVCommandLineInterface;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.KVLocalDataStore;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.KVRingDataPartitioner;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.KVSystemStabilizer;
-import edu.illinois.uiuc.sp17.cs425.team4.component.impl.LocalKVDataManager;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.MessageListenerIdentifierImpl;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.PlainVanillaStringCodec;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.ProcessCodec;
@@ -153,7 +152,8 @@ public class KVServerA {
 	}
 	
 	private static KVSystemStabilizer<String, String> createSystemStabilizer(RingTopology<String> ringTopology, KVRawDataManager<String, String> dataManager) {
-		return new KVSystemStabilizer<String, String>(ringTopology, numFailures, dataManager, mySelf, kvRequestTimeout);
+		return new KVSystemStabilizer<String, String>
+		(ringTopology, numFailures, dataManager, mySelf, kvRequestTimeout, kvRetryCount);
 	}
 
 	private static KVCommandLineInterface createKVCmd(KVDataManager<String, String> mainDataManager,
@@ -164,7 +164,8 @@ public class KVServerA {
 	private static KVDataManager<String, String> createMainDataManager(KVRawDataManager<String, String> rawDataManager, 
 			KVDataPartitioner<String> ringDataPartitioner) {
 		// Create main data manager using a raw manager.
-		return new SimpleKVDataManager<String, String>(rawDataManager, ringDataPartitioner, kvRequestTimeout, kvRetryCount);
+		return new SimpleKVDataManager<String, String>
+							(mySelf, rawDataManager, ringDataPartitioner, kvRequestTimeout, kvRetryCount);
 	}
 	
 	private static KVDataPartitioner<String> createKVRingDataPartitioner(RingTopology<String> ringTopology) {

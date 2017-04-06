@@ -1,17 +1,13 @@
 package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
-import java.util.Map.Entry;
-
 import org.apache.log4j.Logger;
 
-import java.util.NavigableMap;
 import java.util.Set;
 
 import edu.illinois.uiuc.sp17.cs425.team4.component.GroupChangeListener;
+import edu.illinois.uiuc.sp17.cs425.team4.component.KVDataManager;
 import edu.illinois.uiuc.sp17.cs425.team4.component.KVDataPartitioner;
 import edu.illinois.uiuc.sp17.cs425.team4.component.KVRawDataManager;
 import edu.illinois.uiuc.sp17.cs425.team4.component.RingTopology;
@@ -33,9 +29,11 @@ public class KVSystemStabilizer<K, V> implements GroupChangeListener {
 	private final KVRawDataManager<K, V> rawDataManager;
 	private final Process myIdentity;
 	private final int requestTimeout;
+	private final int tryCount;
 
 	public KVSystemStabilizer(RingTopology<K> ringTopology, int maxFailures,
-			KVRawDataManager<K, V> rawDataManager, Process myIdentity, int requestTimeout) {
+			KVRawDataManager<K, V> rawDataManager, Process myIdentity, int requestTimeout,
+			int tryCount) {
 		// We maintain two copies of ring topology.
 		// Active one always stays up to date.
 		// Other one is used to view how the system looked before failures and in the old topology who is holding
@@ -47,6 +45,7 @@ public class KVSystemStabilizer<K, V> implements GroupChangeListener {
 		this.rawDataManager = rawDataManager;
 		this.myIdentity = myIdentity;
 		this.requestTimeout = requestTimeout;
+		this.tryCount = tryCount;
 	}
 	
 	@Override
@@ -95,50 +94,21 @@ public class KVSystemStabilizer<K, V> implements GroupChangeListener {
 	
 	@GuardedBy("this")
 	private void redistributeLocalKeys() throws Exception {
-		Map<Process, Map<K,NavigableMap<Long,V>>> segregatedData = 
-				segregateDataProcessWise(this.rawDataManager.getLocalSnapshot());;
-		// TODO We don't have to handle failures for now because while we are in recovery mode, there can't be more failures.
-		for (Entry<Process, Map<K, NavigableMap<Long, V>>> processWiseData: segregatedData.entrySet()) {
-			// Write.
-			this.rawDataManager.writeBatch(processWiseData.getValue(), processWiseData.getKey(), this.requestTimeout);
-		}
+		KVDataPartitioner<K> dataPartitioner = new KVRingDataPartitioner<K>(this.activeRingTopology, this.maxFailures);
+		KVDataManager<K, V> dataManager = createDataManager(dataPartitioner);
+		dataManager.writeBatch(this.rawDataManager.getLocalSnapshot());
 		LOG.debug("Done redistributing.");
 	}
-	
-	@GuardedBy("this")
-	private Map<Process, Map<K, NavigableMap<Long, V>>> segregateDataProcessWise(Map<K, NavigableMap<Long, V>> data) {
-		KVDataPartitioner<K> dataPartitioner = new KVRingDataPartitioner<K>
-														(this.activeRingTopology, this.maxFailures);
-		Map<Process, Map<K,NavigableMap<Long,V>>> segregatedData = new HashMap<>();
-		
-		for (Entry<K, NavigableMap<Long, V>> dataEntry: data.entrySet()) {
-			// Get all partitions of the key.
-			Set<Process> allPartitions = getAllPartitions(dataEntry.getKey(), dataPartitioner);
-			// Add this key to each partitions' data.
-			for (Process partition: allPartitions) {
-				Map<K, NavigableMap<Long, V>> partitionzData = segregatedData.get(partition);
-				if (partitionzData == null) {
-					partitionzData = new HashMap<>();
-					segregatedData.put(partition, partitionzData);
-				}
-				partitionzData.put(dataEntry.getKey(), dataEntry.getValue());
-			}
-		}
-		return segregatedData;
-	}
-	
-	private Set<Process> getAllPartitions(K key, KVDataPartitioner<K> dataPartitioner) {
-		Process primaryPartition = dataPartitioner.getPrimaryPartition(key);
-		Set<Process> allPartitions = dataPartitioner.getReplicas(primaryPartition);
-		allPartitions.add(primaryPartition);
-		return allPartitions;
-	}
-	
 
 	@GuardedBy("this")
 	private void prepareForNextRoundOfFailures() {
 		this.beforeFailuresRingTopology = this.activeRingTopology.copy();
 		// Clear failures.
 		this.failures.clear();
+	}
+	
+	private KVDataManager<K, V> createDataManager(KVDataPartitioner<K> dataPartitoner) {
+		return new SimpleKVDataManager<>(this.myIdentity, this.rawDataManager, 
+											dataPartitoner, this.requestTimeout, this.tryCount);
 	}
 }
