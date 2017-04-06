@@ -142,12 +142,6 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 	public KVAsyncOpResult<Boolean> writeOnce(K key, V value, long timestamp) {
 		// Get partitions.
 		Set<Process> partitions = getPartitions(key);
-		try {
-			Thread.sleep(10000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 		// Write to atleast W of them.
 		KVAsyncOpResult<Boolean> writeResult = this.rawDataManager.write(key, 
 														value, 
