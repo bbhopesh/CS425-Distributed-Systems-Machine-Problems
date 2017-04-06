@@ -285,4 +285,11 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 		}
 		
 	}
+
+
+	@Override
+	public Map<K, Pair<Long, V>> readBatch(Set<K> keys, long asOfTimestamp) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }
