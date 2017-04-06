@@ -39,6 +39,7 @@ import edu.illinois.uiuc.sp17.cs425.team4.component.impl.BasicMulticast;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.CassandraLikeRing;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.IsisTotallyOrderedMC;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.KVCommandLineInterface;
+import edu.illinois.uiuc.sp17.cs425.team4.component.impl.KVLocalDataStore;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.KVRingDataPartitioner;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.KVSystemStabilizer;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.LocalKVDataManager;
@@ -47,9 +48,9 @@ import edu.illinois.uiuc.sp17.cs425.team4.component.impl.PlainVanillaStringCodec
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.ProcessCodec;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.SHA1HashFunction;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.SWIMFailureDetectorV2;
+import edu.illinois.uiuc.sp17.cs425.team4.component.impl.SequentialKVRawDataManager;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.SimpleChatApplication;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.SimpleKVDataManager;
-import edu.illinois.uiuc.sp17.cs425.team4.component.impl.SimpleRawDataManager;
 import edu.illinois.uiuc.sp17.cs425.team4.component.tcpimpl.TCPMessageAdaptor;
 import edu.illinois.uiuc.sp17.cs425.team4.component.tcpimpl.TCPMessengerBuilder;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
@@ -134,10 +135,14 @@ public class KVServerG {
 		RingTopology<String> ringTopology = createCassandraLikeRingTopology();
 		// Create Data partitioner.
 		KVDataPartitioner<String> ringDataPartitioner =  createKVRingDataPartitioner(ringTopology);
+		// Create local data store.
+		KVLocalDataStore<String, String> localDataScore = createLocalDataStore();
+		// Create raw data manager using local data manager.
+		KVRawDataManager<String, String> rawDataManager = createRawDataManager(localDataScore, messenger, threadPool);
 		// create data manager using data partitioner.
-		KVDataManager<String, String> mainDataManager = createMainDataManager(messenger, threadPool, ringDataPartitioner);
+		KVDataManager<String, String> mainDataManager = createMainDataManager(rawDataManager, ringDataPartitioner);
 		// Create system stabilizer.
-		KVSystemStabilizer<String, String> stabilizer = createSystemStabilizer(ringTopology);
+		KVSystemStabilizer<String, String> stabilizer = createSystemStabilizer(ringTopology, rawDataManager);
 		// Register on group manager so it can listen for changes and stabilize system accordingly.
 		groupManager.registerGroupChangeListener(stabilizer);
 		// Start user interface.
@@ -147,9 +152,8 @@ public class KVServerG {
 		System.exit(0);
 	}
 	
-	private static KVSystemStabilizer<String, String> createSystemStabilizer(RingTopology<String> ringTopology) {
-		// TODO Auto-generated method stub
-		return null;
+	private static KVSystemStabilizer<String, String> createSystemStabilizer(RingTopology<String> ringTopology, KVRawDataManager<String, String> dataManager) {
+		return new KVSystemStabilizer<String, String>(ringTopology, numFailures, dataManager, mySelf, kvRequestTimeout);
 	}
 
 	private static KVCommandLineInterface createKVCmd(KVDataManager<String, String> mainDataManager,
@@ -157,12 +161,8 @@ public class KVServerG {
 		return new KVCommandLineInterface(mainDataManager, ringDataPartitioner);
 	}
 
-	private static KVDataManager<String, String> createMainDataManager(Messenger messenger, 
-			ExecutorService threadPool, KVDataPartitioner<String> ringDataPartitioner) {
-		// Create local data manager.
-		KVDataManager<String, String> localDataManager = createLocalDataManager();
-		// Create raw data manager using local data manager.
-		KVRawDataManager<String, String> rawDataManager = createRawDataManager(localDataManager, messenger, threadPool);
+	private static KVDataManager<String, String> createMainDataManager(KVRawDataManager<String, String> rawDataManager, 
+			KVDataPartitioner<String> ringDataPartitioner) {
 		// Create main data manager using a raw manager.
 		return new SimpleKVDataManager<String, String>(rawDataManager, ringDataPartitioner, kvRequestTimeout, kvRetryCount);
 	}
@@ -177,13 +177,13 @@ public class KVServerG {
 		Codec<Process> processCodec = new ProcessCodec();
 		return new CassandraLikeRing<String>(groupMembers, hashFunction, mBytes, strCodec, processCodec);
 	}
-	private static KVDataManager<String, String> createLocalDataManager() {
-		return new LocalKVDataManager<String, String>();
+	private static KVLocalDataStore<String, String> createLocalDataStore() {
+		return new KVLocalDataStore<String, String>();
 	}
 	
-	private static KVRawDataManager<String, String> createRawDataManager(KVDataManager<String, String> localDataManager,
+	private static KVRawDataManager<String, String> createRawDataManager(KVLocalDataStore<String, String> localDataStore,
 			Messenger messenger, ExecutorService threadPool) {
-		return new SimpleRawDataManager<String, String>(localDataManager, messenger, MODEL, mySelf, threadPool);
+		return new SequentialKVRawDataManager<String, String>(localDataStore, messenger, MODEL, mySelf);
 	}
 	
 	private static void initializeConfiguration() throws IOException {

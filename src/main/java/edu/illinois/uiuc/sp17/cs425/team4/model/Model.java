@@ -2,6 +2,8 @@ package edu.illinois.uiuc.sp17.cs425.team4.model;
 
 import java.net.InetAddress;
 import java.util.Map;
+import java.util.NavigableMap;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Future;
 
@@ -103,21 +105,17 @@ public interface Model {
 	 */
 	public Message createAckMessage(Process originatingProcess, UUID uId);
 	
-	public <K> KeyReadMessage<K> createKeyReadMessage(Process originatingProcess, K key, Long timestamp);
+	public <K> KeysReadMessage<K> createKeysReadMessage(Process originatingProcess, Set<K> keys);
 	
-	public <K> KeyReadMessage<K> createKeyReadMessage(Process originatingProcess, K key, Long timestamp, UUID uId);
+	public <K> KeysReadMessage<K> createKeysReadMessage(Process originatingProcess, Set<K> keys, UUID uId);
 	
-	public <K, V> KeyWriteMessage<K, V> createKeyWriteMessage(Process originatingProcess, K key, V val, Long timestamp);
+	public <K, V> KeysWriteMessage<K, V> createKeysWriteMessage(Process originatingProcess, Map<K, NavigableMap<Long, V>> data);
 	
-	public <K, V> KeyWriteMessage<K, V> createKeyWriteMessage(Process originatingProcess, K key, V val, Long timestamp, UUID uId);
+	public <K, V> KeysWriteMessage<K, V> createKeysWriteMessage(Process originatingProcess, Map<K, NavigableMap<Long, V>> data, UUID uId);
 	
-	public <V> ValueMessage<V> createValueMessage(Process originatingProcess, V val, Long timestamp);
+	public <K, V> ValuesMessage<K, V> createValueMessage(Process originatingProcess, Map<K, NavigableMap<Long,V>> values);
 	
-	public <V> ValueMessage<V> createValueMessage(Process originatingProcess, V val, Long timestamp, UUID uId);
-	
-	public <V> ValueMessage<V> createNullValueMessage(Process originatingProcess);
-	
-	public <V> ValueMessage<V> createNullValueMessage(Process originatingProcess, UUID uId);
+	public <K, V> ValuesMessage<K, V> createValueMessage(Process originatingProcess, Map<K, NavigableMap<Long,V>> values, UUID uId);
 	
 	public <K> KeyDeleteMessage<K> createKeyDeleteMessage(Process originatingProcess, K key);
 	
@@ -142,7 +140,7 @@ public interface Model {
 	 */
 	public Process createProcess(InetAddress inetAddress, int port, String displayName, UUID uId);
 	
-	public <R> KVRawOpResult<R> createKVRawOpResult(boolean succeeded, 
+	public <R> KVAsyncOpResult<R> createKVRawOpResult(boolean succeeded, 
 							Map<Process, R> completed, 
 							Map<Process, Throwable> failures,
 							Map<Process, Future<R>> inProgress);

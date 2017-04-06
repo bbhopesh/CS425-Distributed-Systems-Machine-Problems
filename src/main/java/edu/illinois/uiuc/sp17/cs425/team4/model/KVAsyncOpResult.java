@@ -5,7 +5,7 @@ import java.util.concurrent.Future;
 
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 
-public interface KVRawOpResult<R> {
+public interface KVAsyncOpResult<R> {
 	
 	public boolean succeeded();
 	

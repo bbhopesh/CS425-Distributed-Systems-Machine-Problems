@@ -12,7 +12,7 @@ import org.apache.log4j.Logger;
 import edu.illinois.uiuc.sp17.cs425.team4.component.KVDataManager;
 import edu.illinois.uiuc.sp17.cs425.team4.component.KVDataPartitioner;
 import edu.illinois.uiuc.sp17.cs425.team4.component.KVRawDataManager;
-import edu.illinois.uiuc.sp17.cs425.team4.model.KVRawOpResult;
+import edu.illinois.uiuc.sp17.cs425.team4.model.KVAsyncOpResult;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 
 public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
@@ -25,11 +25,11 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 	private final int W;
 	private final int R;
 	private final int D;
-	private final int retryCount;
+	private final int tryCount;
 
 	public SimpleKVDataManager(KVRawDataManager<K, V> rawDataManager,
 							KVDataPartitioner<K> dataPartitioner,
-							int requestTimeout, int retryCount) {
+							int requestTimeout, int tryCount) {
 		this.rawDataManager = rawDataManager;
 		this.dataPartitioner = dataPartitioner;
 		// Plus 1 for primary partition.
@@ -41,7 +41,7 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 		
 		this.requestTimeout = requestTimeout;
 		// Retry read/write/delete these many times if failures keep occuring. 
-		this.retryCount  = retryCount;
+		this.tryCount  = tryCount;
 		// TODO We might want to sleep for sometime between each retry, so that if something
 		// is wrong in the system, it gets time to recover.
 		// Not doing it for now.
@@ -60,13 +60,13 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 
 	@Override
 	public Pair<Long, V> read(K key, long asOfTimestamp) {
-		KVRawOpResult<Pair<Long, V>> readResult;
+		KVAsyncOpResult<Pair<Long, V>> readResult;
 		int tries = 0;
 		// Try reading until we succeed.
 		do {
 			readResult = readOnce(key, asOfTimestamp);
 			tries += 1;
-		} while(!readResult.succeeded() && tries < this.retryCount);
+		} while(!readResult.succeeded() && tries < this.tryCount);
 		
 		// Return
 		if (readResult.succeeded()) {
@@ -83,11 +83,11 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 		}
 	}
 	
-	private KVRawOpResult<Pair<Long, V>> readOnce(K key, long asOfTimestamp) {
+	private KVAsyncOpResult<Pair<Long, V>> readOnce(K key, long asOfTimestamp) {
 		// Get partitions.
 		Set<Process> partitions = getPartitions(key);
 		// Read from atleast R of them.
-		KVRawOpResult<Pair<Long, V>> readResult = this.rawDataManager.read(key, 
+		KVAsyncOpResult<Pair<Long, V>> readResult = this.rawDataManager.read(key, 
 														asOfTimestamp, 
 														partitions, 
 														this.R, 
@@ -96,7 +96,7 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 		return readResult;
 	}
 	
-	private Pair<Long, V> getLatest(KVRawOpResult<Pair<Long, V>> rawRes) {
+	private Pair<Long, V> getLatest(KVAsyncOpResult<Pair<Long, V>> rawRes) {
 		NavigableMap<Long, V> values = new TreeMap<Long, V>();
 		
 		for (Entry<Process, Pair<Long, V>> entry: rawRes.completed().entrySet()) {
@@ -116,13 +116,13 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 
 	@Override
 	public boolean write(K key, V value, long timestamp) {
-		KVRawOpResult<Boolean> writeResult;
+		KVAsyncOpResult<Boolean> writeResult;
 		int tries = 0;
 		// Try writing until we succeed.
 		do {
 			writeResult = writeOnce(key, value, timestamp);
 			tries += 1;
-		} while(!writeResult.succeeded() && tries < this.retryCount);
+		} while(!writeResult.succeeded() && tries < this.tryCount);
 		
 		// Return
 		if (writeResult.succeeded()) {
@@ -139,11 +139,17 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 		}
 	}
 	
-	public KVRawOpResult<Boolean> writeOnce(K key, V value, long timestamp) {
+	public KVAsyncOpResult<Boolean> writeOnce(K key, V value, long timestamp) {
 		// Get partitions.
 		Set<Process> partitions = getPartitions(key);
+		try {
+			Thread.sleep(10000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		// Write to atleast W of them.
-		KVRawOpResult<Boolean> writeResult = this.rawDataManager.write(key, 
+		KVAsyncOpResult<Boolean> writeResult = this.rawDataManager.write(key, 
 														value, 
 														timestamp,
 														partitions,
@@ -155,13 +161,13 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 
 	@Override
 	public boolean delete(K key) {
-		KVRawOpResult<Boolean> deleteResult;
+		KVAsyncOpResult<Boolean> deleteResult;
 		int tries = 0;
 		// Try writing until we succeed.
 		do {
 			deleteResult = deleteOnce(key);
 			tries += 1;
-		} while(!deleteResult.succeeded() && tries < this.retryCount);
+		} while(!deleteResult.succeeded() && tries < this.tryCount);
 		
 		// Return
 		if (deleteResult.succeeded()) {
@@ -178,11 +184,11 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 		}
 	}
 	
-	public KVRawOpResult<Boolean> deleteOnce(K key) {
+	public KVAsyncOpResult<Boolean> deleteOnce(K key) {
 		// Get partitions.
 		Set<Process> partitions = getPartitions(key);
 		// Delete from atleast D of partitions.
-		KVRawOpResult<Boolean> deleteResult = this.rawDataManager.delete(key, 
+		KVAsyncOpResult<Boolean> deleteResult = this.rawDataManager.delete(key, 
 													partitions, 
 													this.D, 
 													this.requestTimeout);

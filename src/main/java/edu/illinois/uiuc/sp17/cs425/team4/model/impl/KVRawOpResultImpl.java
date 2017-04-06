@@ -3,10 +3,10 @@ package edu.illinois.uiuc.sp17.cs425.team4.model.impl;
 import java.util.Map;
 import java.util.concurrent.Future;
 
-import edu.illinois.uiuc.sp17.cs425.team4.model.KVRawOpResult;
+import edu.illinois.uiuc.sp17.cs425.team4.model.KVAsyncOpResult;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 
-class KVRawOpResultImpl<R> implements KVRawOpResult<R> {
+class KVRawOpResultImpl<R> implements KVAsyncOpResult<R> {
 	
 	private final boolean succeeded;
 	private final Map<Process, R> completed;

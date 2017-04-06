@@ -27,9 +27,9 @@ public interface Message extends Serializable {
 		PING, // Ping message.
 		ACK, // Acknowledge message.
 		NACK, // Negative acknowledgement.
-		KEY_READ, // Key Read. requesting to read value for a key.
-		KEY_WRITE, // Key Write message. Requesting a K-V pair to be written
-		VALUE, // Message containing a value. This is intended to be used as a response to KEY_READ message.
+		KEYS_READ, // Keys Read. requesting to read values for keys.
+		KEYS_WRITE, // Keys Write message. Requesting to write K-V pairs.
+		VALUES, // Message containing values for key.. This is intended to be used as a response to KEYS_READ message.
 		KEY_DELETE // Message asking remote peer to delete a key.
 	}
 	

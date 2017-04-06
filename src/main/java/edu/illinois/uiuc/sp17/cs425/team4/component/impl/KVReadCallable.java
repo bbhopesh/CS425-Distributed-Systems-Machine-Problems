@@ -1,36 +1,37 @@
 package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
 
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
 
-import edu.illinois.uiuc.sp17.cs425.team4.component.KVDataManager;
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListenerIdentifier;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Messenger;
+import edu.illinois.uiuc.sp17.cs425.team4.model.KeysReadMessage;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Model;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
-import edu.illinois.uiuc.sp17.cs425.team4.model.ValueMessage;
+import edu.illinois.uiuc.sp17.cs425.team4.model.ValuesMessage;
 
-final class KVReadCallable<K, V> implements Callable<Pair<Long, V>> {
+final class KVReadCallable<K, V> implements Callable<Map<K, NavigableMap<Long, V>>> {
 	
 	private final static Logger LOG = Logger.getLogger(KVReadCallable.class.getName());
-	private final K key;
-	private final Long asOfTimestamp;
+	private final Set<K> keys;
 	private final Messenger messenger;
 	private final Process readFrom;
 	private final MessageListenerIdentifier listenerIdentifier;
 	private final int requestTimeout;
 	private final Process myIdentity;
 	private final Model model;
-	private final KVDataManager<K, V> localDataManger;
+	private final KVLocalDataStore<K, V> localDataManger;
 
-	public KVReadCallable(K key, Long asOfTimestamp, Messenger messenger, Process readFrom,
+	public KVReadCallable(Set<K> keys, Messenger messenger, Process readFrom,
 			MessageListenerIdentifier listenerIdentifier, int requestTimeout, Process myIdentity, Model model,
-			KVDataManager<K, V> localDataManger) {
-		this.key = key;
-		this.asOfTimestamp = asOfTimestamp;
+			KVLocalDataStore<K, V> localDataManger) {
+		this.keys = keys;
 		this.messenger = messenger;
 		this.readFrom = readFrom;
 		this.listenerIdentifier = listenerIdentifier;
@@ -41,7 +42,7 @@ final class KVReadCallable<K, V> implements Callable<Pair<Long, V>> {
 	}
 
 	@Override
-	public Pair<Long, V> call() {
+	public Map<K, NavigableMap<Long, V>> call() throws Exception {
 		// If there is an exception while doing a remote read(MessengerException),
 		// then that exception will be propagated up the call stack as it is.
 		// Caller can retry if she wishes to.
@@ -52,31 +53,23 @@ final class KVReadCallable<K, V> implements Callable<Pair<Long, V>> {
 		}
 	}
 
-	private Pair<Long, V> readFromLocal() {
-		LOG.debug(String.format("Reading from local. Key: %s, AsOfTimestamp: %s",
-				this.key, this.asOfTimestamp));
-		Pair<Long, V> timestampedValue = this.localDataManger.read(this.key,this.asOfTimestamp);
-		if (timestampedValue == null) {
-			LOG.debug("Read from local returned null");
-		} else {
-			LOG.debug(String.format("Read from local returned, Value: %s, Timestamp: %s",
-					timestampedValue.getValue(), timestampedValue.getLeft()));
-		}
-		return timestampedValue;
+	private Map<K, NavigableMap<Long, V>> readFromLocal() {
+		LOG.debug(String.format("Reading from local. Keys: %s", this.keys));
+		return this.localDataManger.read(this.keys);
 	}
 	
-	private Pair<Long, V> readFromRemote() {
+	private Map<K, NavigableMap<Long, V>> readFromRemote() {
 		// Read from remote.
 		Pair<Process, Message> dstnAndMsg = Pair.of(this.readFrom, createReadMessage());
-		LOG.debug(String.format("Sending key read message %s to %s. Key: %s, AsOfTimestamp: %s",
+		LOG.debug(String.format("Sending keys read message %s to %s. Keys: %s",
 				dstnAndMsg.getRight().getUUID(),
-				this.readFrom.getDisplayName(), this.key, this.asOfTimestamp));
+				this.readFrom.getDisplayName(), this.keys));
 		Message valueMessage = this.messenger.send(dstnAndMsg, this.requestTimeout);
-		return extractValue(valueMessage, dstnAndMsg);
+		return extractValues(valueMessage, dstnAndMsg);
 	}
 	
-	private Message createReadMessage() {
-		Message readMsg = this.model.createKeyReadMessage(this.myIdentity, this.key, this.asOfTimestamp);
+	private KeysReadMessage<K> createReadMessage() {
+		KeysReadMessage<K> readMsg = this.model.createKeysReadMessage(this.myIdentity, this.keys);
 		stampMetaData(readMsg);
 		return readMsg;
 	}
@@ -86,22 +79,14 @@ final class KVReadCallable<K, V> implements Callable<Pair<Long, V>> {
 	}
 	
 	@SuppressWarnings("unchecked")
-	private Pair<Long, V> extractValue(Message valueMsg, Pair<Process, Message> dstnAndMsg) {
+	private Map<K, NavigableMap<Long, V>> extractValues(Message valueMsg, Pair<Process, Message> dstnAndMsg) {
 		// Unsafe cast. Message type must be value message.
 		// Not checking before cast because if check fails, I would want to throw some exception.
 		// that will be done via ClassCastException anyway.
-		ValueMessage<V> valueMsgO = (ValueMessage<V>) valueMsg;
-		if (valueMsgO.isNull()) {
-			LOG.debug(String.format("%s replied null in message %s for key read message %s", 
-					dstnAndMsg.getLeft().getDisplayName(), valueMsgO.getUUID(), dstnAndMsg.getRight().getUUID()));
-			return null;
-		} else {
-			Long timestamp = valueMsgO.getTimestamp();
-			V val = valueMsgO.getValue();
-			LOG.debug(String.format("%s replied in message %s for key read message %s. Value: %s, Timestamp: %s", 
-					dstnAndMsg.getLeft().getDisplayName(), valueMsgO.getUUID(), dstnAndMsg.getRight().getUUID(),
-					val, timestamp));
-			return Pair.of(timestamp, val);
-		}
+		ValuesMessage<K, V> valueMsgO = (ValuesMessage<K, V>) valueMsg;
+		LOG.debug(String.format("%s replied in message %s for keys read message %s. Values: %s", 
+				dstnAndMsg.getLeft().getDisplayName(), valueMsgO.getUUID(), dstnAndMsg.getRight().getUUID(),
+				valueMsgO.getValues()));
+		return valueMsgO.getValues();
 	}
 }

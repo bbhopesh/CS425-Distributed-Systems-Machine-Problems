@@ -1,11 +1,12 @@
 package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
 
+import java.util.Map;
+import java.util.NavigableMap;
 import java.util.concurrent.Callable;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
 
-import edu.illinois.uiuc.sp17.cs425.team4.component.KVDataManager;
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListenerIdentifier;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Messenger;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
@@ -16,23 +17,19 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 final class KVWriteCallable<K, V> implements Callable<Boolean> {
 
 	private final static Logger LOG = Logger.getLogger(KVWriteCallable.class.getName());
-	private final K key;
-	private final V value;
-	private final Long timestamp;
+	private final Map<K, NavigableMap<Long, V>> data;
 	private final Messenger messenger;
 	private final Process writeTo;
 	private final MessageListenerIdentifier listenerIdentifier;
 	private final int requestTimeout;
 	private final Process myIdentity;
 	private final Model model;
-	private final KVDataManager<K, V> localDataManger;
+	private final KVLocalDataStore<K, V> localDataManger;
 
-	public KVWriteCallable(K key, V value, Long timestamp, Messenger messenger, Process writeTo,
+	public KVWriteCallable(Map<K, NavigableMap<Long, V>> data, Messenger messenger, Process writeTo,
 			MessageListenerIdentifier listenerIdentifier, int requestTimeout, Process myIdentity, Model model,
-			KVDataManager<K, V> localDataManger) {
-		this.key = key;
-		this.value = value;
-		this.timestamp = timestamp;
+			KVLocalDataStore<K, V> localDataManger) {
+		this.data = data;
 		this.messenger = messenger;
 		this.writeTo = writeTo;
 		this.listenerIdentifier = listenerIdentifier;
@@ -55,24 +52,24 @@ final class KVWriteCallable<K, V> implements Callable<Boolean> {
 	}
 
 	private boolean writeToLocal() throws Exception {
-		LOG.debug(String.format("Sending key write message to %s. Key: %s, Value: %s, Timestamp: %s",
-				this.writeTo.getDisplayName(), this.key, this.value, this.timestamp));
-		this.localDataManger.write(this.key, this.value, this.timestamp);
+		LOG.debug(String.format("Sending keys write message to %s. Data: %s",
+				this.writeTo.getDisplayName(), this.data));
+		this.localDataManger.write(this.data);
 		return true;
 	}
 	
 	private boolean writeToRemote() {
 		// Write to remote.
 		Pair<Process, Message> dstnAndMsg = Pair.of(this.writeTo, createWriteMessage());
-		LOG.debug(String.format("Sending key write message %s to %s. Key: %s, Value: %s, Timestamp: %s",
+		LOG.debug(String.format("Sending key write message %s to %s. Data: %s",
 				dstnAndMsg.getRight().getUUID(),
-				this.writeTo.getDisplayName(), this.key, this.value, this.timestamp));
+				this.writeTo.getDisplayName(), this.data));
 		Message ack = this.messenger.send(dstnAndMsg, this.requestTimeout);
 		return ack != null;
 	}
 	
 	private Message createWriteMessage() {
-		Message writeMsg = this.model.createKeyWriteMessage(this.myIdentity, this.key, this.value, this.timestamp);
+		Message writeMsg = this.model.createKeysWriteMessage(this.myIdentity, this.data);
 		stampMetaData(writeMsg);
 		return writeMsg;
 	}
