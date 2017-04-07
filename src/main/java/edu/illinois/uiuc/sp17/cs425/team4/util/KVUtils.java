@@ -4,7 +4,6 @@ import java.io.Serializable;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.NavigableMap;
 import java.util.Set;
 import java.util.Map.Entry;
 
@@ -14,16 +13,16 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 public class KVUtils {
 	private KVUtils() {}
 	
-	public static <K, V> Map<Process, Map<K, NavigableMap<Long, V>>> segregateDataProcessWise(
-			Map<K, NavigableMap<Long, V>> data, KVDataPartitioner<K> dataPartitioner) {
-		Map<Process, Map<K,NavigableMap<Long,V>>> segregatedData = new HashMap<>();
+	public static <K, D> Map<Process, Map<K, D>> segregateDataProcessWise(
+			Map<K, D> data, KVDataPartitioner<K> dataPartitioner) {
+		Map<Process, Map<K,D>> segregatedData = new HashMap<>();
 		
-		for (Entry<K, NavigableMap<Long, V>> dataEntry: data.entrySet()) {
+		for (Entry<K, D> dataEntry: data.entrySet()) {
 			// Get all partitions of the key.
 			Set<Process> allPartitions = getAllPartitions(dataEntry.getKey(), dataPartitioner);
 			// Add this key to each partitions' data.
 			for (Process partition: allPartitions) {
-				Map<K, NavigableMap<Long, V>> partitionzData = segregatedData.get(partition);
+				Map<K, D> partitionzData = segregatedData.get(partition);
 				if (partitionzData == null) {
 					partitionzData = new HashMap<>();
 					segregatedData.put(partition, partitionzData);

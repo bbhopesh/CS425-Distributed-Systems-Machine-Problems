@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Scanner;
 import java.util.Set;
-
 import org.apache.commons.lang3.tuple.Pair;
 
 import edu.illinois.uiuc.sp17.cs425.team4.component.KVDataManager;
@@ -114,7 +113,8 @@ public class KVCommandLineInterface {
 	}
 	
 	private void handleSetOperation(String key, String value) {
-		boolean success = this.dataManager.write(key, value);
+		Long t = System.currentTimeMillis();
+		boolean success = this.dataManager.write(key, value, t);
 		if(success) {
 			System.out.println("SET OK");
 		}else {

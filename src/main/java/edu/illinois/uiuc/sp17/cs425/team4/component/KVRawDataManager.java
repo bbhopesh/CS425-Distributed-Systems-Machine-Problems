@@ -24,4 +24,6 @@ public interface KVRawDataManager<K, V> {
 	public KVAsyncOpResult<Map<K, NavigableMap<Long, V>>> readBatch(Set<Process> readFrom, int requestTimeout);
 	
 	public Map<K, NavigableMap<Long, V>> getLocalSnapshot();
+	
+	public Map<K, NavigableMap<Long, V>> getLocalSnapshot(Long asOfTimestamp);
 }

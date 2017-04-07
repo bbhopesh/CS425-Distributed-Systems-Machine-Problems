@@ -77,4 +77,18 @@ public class KVLocalDataStore<K,V> {
 		}
 		return dataSnapshot;
 	}
+	
+	public Map<K, NavigableMap<Long, V>> getSnapshot(Long asOfTimestamp) {
+		Map<K, NavigableMap<Long, V>> dataSnapshot =  new HashMap<K, NavigableMap<Long, V>>();
+		for (Entry<K, ConcurrentNavigableMap<Long, V>> dataEntry: this.data.entrySet()) {
+			NavigableMap<Long, V> values = new TreeMap<Long,V>(KVUtils.createDecLongComp());
+			for (Entry<Long, V> valueEntry: dataEntry.getValue().entrySet()) {
+				if (valueEntry.getKey() <= asOfTimestamp) {
+					values.put(valueEntry.getKey(), valueEntry.getValue());
+				}
+			}
+			dataSnapshot.put(dataEntry.getKey(), values);
+		}
+		return dataSnapshot;
+	}
 }

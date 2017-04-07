@@ -75,7 +75,7 @@ public class SequentialKVRawDataManager<K, V> implements KVRawDataManager<K, V>,
 	private Pair<Long, V> getLatest(KVReadCallable<K, V> reader, K key, Long asOfTimestamp) throws Exception {
 		Map<K, NavigableMap<Long, V>> data = reader.call();
 		if (data.containsKey(key)) {
-			Entry<Long, V> dataEntry = data.get(key).higherEntry(asOfTimestamp);
+			Entry<Long, V> dataEntry = data.get(key).ceilingEntry(asOfTimestamp);
 			return dataEntry != null ? Pair.of(dataEntry.getKey(), dataEntry.getValue()) : null;
 		} else {
 			return null;
@@ -283,5 +283,10 @@ public class SequentialKVRawDataManager<K, V> implements KVRawDataManager<K, V>,
 			perProcessKeys.put(p, new HashSet<>()); // empty set of keys mean read all keys.
 		}
 		return readBatch(perProcessKeys, requestTimeout);
+	}
+
+	@Override
+	public Map<K, NavigableMap<Long, V>> getLocalSnapshot(Long asOfTimestamp) {
+		return this.localDataStore.getSnapshot(asOfTimestamp);
 	}
 }

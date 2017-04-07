@@ -1,9 +1,11 @@
 package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
+import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeMap;
 import org.apache.commons.lang3.tuple.Pair;
@@ -100,7 +102,6 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 	
 	private Pair<Long, V> getLatest(KVAsyncOpResult<Pair<Long, V>> rawRes) {
 		NavigableMap<Long, V> values = new TreeMap<Long, V>();
-		
 		for (Entry<Process, Pair<Long, V>> entry: rawRes.completed().entrySet()) {
 			Pair<Long, V> val = entry.getValue();
 			if (val != null && val.getLeft() != null) {
@@ -208,7 +209,7 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 		do {
 			Map<Process, Map<K, NavigableMap<Long, V>>> processWiseData = 
 					KVUtils.segregateDataProcessWise(data, this.dataPartitioner);
-			writeResult = writeBatchOnce(data, processWiseData);
+			writeResult = writeBatchOnce(processWiseData);
 			tries += 1;
 			data = getUnsuccessfulWrites(writeResult, processWiseData);
 		} while(!writeResult.succeeded() && tries < this.tryCount);
@@ -230,7 +231,7 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 		}
 	}
 	
-	private KVAsyncOpResult<Boolean> writeBatchOnce(Map<K, NavigableMap<Long, V>> data, Map<Process, Map<K, NavigableMap<Long, V>>> processWiseData) {
+	private KVAsyncOpResult<Boolean> writeBatchOnce(Map<Process, Map<K, NavigableMap<Long, V>>> processWiseData) {
 		return this.rawDataManager.writeBatch(processWiseData, this.requestTimeout);
 	}
 	
@@ -288,8 +289,73 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 
 
 	@Override
-	public Map<K, Pair<Long, V>> readBatch(Set<K> keys, long asOfTimestamp) {
-		// TODO Auto-generated method stub
-		return null;
+	public Map<K, NavigableMap<Long, V>> readBatch(Map<K, NavigableSet<Long>> keys) {
+		KVAsyncOpResult<Map<K, NavigableMap<Long, V>>> readResult;
+		int tries = 0;
+		// Try reading until we succeed.
+		do {
+			readResult = readBatchOnce(keys);
+			tries += 1;
+		} while(!readResult.succeeded() && tries < this.tryCount);
+		
+		// Return
+		if (readResult.succeeded()) {
+			LOG.debug("Read succeeded.");
+			return extractValuesForTimestamps(keys, readResult);
+		} else {
+			LOG.debug(String.format("Batch Read failed even after %s tries.", this.tryCount));
+			System.err.println(String.format("Batch Read failed even after %s tries.", this.tryCount));
+			// TODO It's really not clear to me about what should be returned if we don't succeed even after retries.
+			// One thought was to take all the exceptions in raw result, wrap it in one and throw, and let caller deal with it.
+			// Other thought was to just return null because this class is to be used by the user interface directly.
+			// Going with the second approach for now.
+			// If such a situation arises, then we are going to get penalty for MP anyway, so who cares which approach I really use :)
+			return null;
+		}
 	}
+	
+	private Map<K, NavigableMap<Long, V>> extractValuesForTimestamps(Map<K, NavigableSet<Long>> keys, 
+			KVAsyncOpResult<Map<K, NavigableMap<Long, V>>> readResult) {
+		Map<K, NavigableMap<Long, V>> rawData = new HashMap<>();
+		
+		for (Entry<Process, Map<K, NavigableMap<Long, V>>> entry: readResult.completed().entrySet()) {
+			addAll(entry.getValue(), rawData);
+		}
+		
+		Map<K, NavigableMap<Long, V>> finalResult = new HashMap<>();
+		for (Entry<K, NavigableSet<Long>> keyEntry: keys.entrySet()) {
+			K key = keyEntry.getKey();
+			if (rawData.containsKey(key)) {
+				NavigableMap<Long, V> rawalues = rawData.get(key);
+				NavigableMap<Long, V> values = new TreeMap<>(KVUtils.createDecLongComp());
+				for (Long timestamp: keyEntry.getValue()) {
+					Entry<Long, V> valueEntry = rawalues.ceilingEntry(timestamp);
+					V v = null;
+					if (valueEntry != null) {
+						v = valueEntry.getValue();
+					}
+					values.put(timestamp, v);
+				}
+				finalResult.put(key, values);
+			}
+		}
+		return finalResult;
+	}
+	
+	private KVAsyncOpResult<Map<K, NavigableMap<Long, V>>> readBatchOnce(Map<K, NavigableSet<Long>> keys) {
+		Map<Process, Map<K, NavigableSet<Long>>> processWiseKeys = 
+				KVUtils.segregateDataProcessWise(keys, this.dataPartitioner);
+		Map<Process, Set<K>> perProcessKeys = new HashMap<>();
+		for (Entry<Process, Map<K, NavigableSet<Long>>> entry: processWiseKeys.entrySet()) {
+			perProcessKeys.put(entry.getKey(), new HashSet<K>(entry.getValue().keySet()));
+		}
+		return this.rawDataManager.readBatch(perProcessKeys, this.requestTimeout);
+	}
+
+
+	@Override
+	public Map<K, NavigableMap<Long, V>> getLocalSnapshot(Long asOfTimestamp) {
+		return this.rawDataManager.getLocalSnapshot(asOfTimestamp);
+	}
+
 }
