@@ -212,11 +212,19 @@ public class SWIMFailureDetectorV2 implements GroupManager, MessageListener, Cal
 	 */
 	private void markAsFailed(Process failure) {
 		// Add to queue of failed processes.
-		Integer protocolPeriodOfFailure = this.failures.putIfAbsent(failure, getProtocolPeriodNumber());
+		/*Integer protocolPeriodOfFailure = this.failures.putIfAbsent(failure, getProtocolPeriodNumber());
 		if (protocolPeriodOfFailure == null) {
 			// This is a new failure.
 			// Remove from group.
 			this.groupMembers.remove(failure);
+			// inform listeners.
+			informListeners(failure);
+		}*/
+		boolean removedSuccessfully = this.groupMembers.remove(failure);
+		// Relying on atomicity of remove. Atmost one thread should have removedSuccessfully as true.
+		if (removedSuccessfully) {
+			// This is a new failure.
+			this.failures.putIfAbsent(failure, getProtocolPeriodNumber());
 			// inform listeners.
 			informListeners(failure);
 		}
@@ -349,7 +357,7 @@ public class SWIMFailureDetectorV2 implements GroupManager, MessageListener, Cal
 		try {
 			Process joiningProcess = msg.getOriginatingSource();
 			// Remove from list of failures.
-			removeFromListOfFailures(joiningProcess);
+			clearListOfFailures();
 			this.groupMembers.add(joiningProcess);
 			informProcessJoinToListeners(joiningProcess);
 		} finally {
@@ -357,8 +365,12 @@ public class SWIMFailureDetectorV2 implements GroupManager, MessageListener, Cal
 		}
 	}
 
-	private void removeFromListOfFailures(Process joiningProcess) {
-		this.failures.remove(joiningProcess);
+	private void clearListOfFailures() {
+		// TODO we assume that our the failures detected till time of a process join have already been disseminated.
+		// So we can clear the older list.
+		// We have to clear the older list, so that we dont send failure information from past to the process
+		// who just joined.
+		this.failures.clear();
 	}
 
 	private void handlePing(Process sender, Message msg, ResponseWriter responseWriter) {

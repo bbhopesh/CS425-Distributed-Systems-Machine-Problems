@@ -51,6 +51,8 @@ public class KVSystemStabilizer<K, V> implements GroupChangeListener {
 	@Override
 	@GuardedBy("this")
 	public synchronized void processJoined(Process j) {
+		LOG.debug(String.format("Process %s joined the system", j));
+		System.err.println(String.format("Process %s joined the system", j.getDisplayName()));
 		// Update both rings.
 		this.activeRingTopology.addProcesses(new HashSet<>(Arrays.asList(j)));
 		this.beforeFailuresRingTopology.addProcesses(new HashSet<>(Arrays.asList(j)));
