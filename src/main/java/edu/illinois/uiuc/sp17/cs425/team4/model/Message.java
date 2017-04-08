@@ -21,6 +21,8 @@ public interface Message extends Serializable {
 	public enum MessageType {
 		// Add more message types as needed.
 		NO_OP, // No Op message(just a placeholder)
+		JOINING, // Indicating that a process is joining the system.
+		GROUP_MEMBERS, // Message containing group membership.
 		JOINED, // Indicating that a process has joined the system.
 		LEFT, // Indicating that a process has left.
 		TEXT,  // Text message.

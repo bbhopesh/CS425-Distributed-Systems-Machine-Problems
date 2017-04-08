@@ -45,6 +45,27 @@ public interface Model {
 	public TextMessage createTextMessage(String text, Process originatingProcess, UUID uId);
 	
 	/**
+	 * Create Process joining message with random unique id.
+	 * @param originatingProcess Originating process for the message.
+	 * @return Process joined message.
+	 */
+	public Message createProcessJoiningMessage(Process originatingProcess);
+	
+	/**
+	 * Create Process joining message with provided unique id.
+	 * @param originatingProcess Originating process for the message.
+	 * @param uId unique id of the message to be created.
+	 * @return Process joined message.
+	 */
+	public Message createProcessJoiningMessage(Process originatingProcess, UUID uId);
+	
+	
+	public GroupMembershipMessage createGroupMembershipMessage(Process originatingProcess, Set<Process> groupMembers);
+	
+	
+	public GroupMembershipMessage createGroupMembershipMessage(Process originatingProcess, Set<Process> groupMembers, UUID uId);
+	
+	/**
 	 * Create Process joined message with random unique id.
 	 * @param originatingProcess Originating process for the message.
 	 * @return Process joined message.

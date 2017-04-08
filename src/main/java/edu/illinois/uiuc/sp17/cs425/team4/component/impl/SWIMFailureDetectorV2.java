@@ -1,6 +1,5 @@
 package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
 
-import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -25,6 +24,7 @@ import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListenerIdentifier;
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListener;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Messenger;
 import edu.illinois.uiuc.sp17.cs425.team4.component.ResponseWriter;
+import edu.illinois.uiuc.sp17.cs425.team4.model.GroupMembershipMessage;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message.MessageType;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Model;
@@ -43,7 +43,7 @@ public class SWIMFailureDetectorV2 implements GroupManager, MessageListener, Cal
 	/** Listener Identifier. */
 	private static final String S_IDENTIFIER = "SwimV2FailureDetector";
 	/** Listener Identifier. */
-	private static final MessageListenerIdentifier IDENTIFIER = 
+	public static final MessageListenerIdentifier IDENTIFIER = 
 			new MessageListenerIdentifierImpl(S_IDENTIFIER);
 	/** Message prop indicating the failed process. */
 	private static final String FAILED_PROCESSES_PROP = S_IDENTIFIER  + " FailedProcesses";
@@ -91,7 +91,7 @@ public class SWIMFailureDetectorV2 implements GroupManager, MessageListener, Cal
 									int protocolPeriod,
 									double minProtocolPeriod,
 									int pingTargets,
-									ExecutorService threadPool) throws FileNotFoundException {
+									ExecutorService threadPool) {
 		this.myIdentity = myIdentity;
 		this.groupMembers = initializeGroupMembers(groupMembers);
 		this.messenger = messenger;
@@ -179,55 +179,6 @@ public class SWIMFailureDetectorV2 implements GroupManager, MessageListener, Cal
 		return this.protocolPeriodsElapsed;
 	}
 	
-	// The commented out multi-threaded version is not working with delays in the network.
-	// Some it takes many seconds for pings sent here(if started on diff threads.) to receive
-	// at other end. Same problem was occurring with v1 swim failure detector for indirect messages.
-	/*private void protocolPeriod() {
-		// Action are implemented only for a single protocol period.
-		// This function should be called periodically.
-		Message pingMessage = createPingMessage();
-		List<Process> kPingTargets = kRandomPeers(this.pingTargets);
-		LOG.debug(String.format("[Picked %s as ping targets.]", kPingTargets));
-		List<Future<Void>> pingResults = new ArrayList<Future<Void>>(kPingTargets.size());
-		
-		for (Process pingTarget: kPingTargets) {
-			Callable<Void> pingTask = new Callable<Void>() {
-				@Override
-				public Void call() throws Exception {
-					try {
-						Message ack = pingProcess(pingMessage, pingTarget, directPingTimeout());
-						if (ack != null) {
-							// Protocol period satisfied.
-							LOG.debug(String.format("[Ack %s received from %s for ping %s.]",
-									ack.getUUID(), pingTarget, pingMessage.getUUID()));
-						} else {
-							LOG.debug(String.format("[Didn't receive ack from %s for ping %s, declaring it as failed.]", 
-									pingTarget, pingMessage.getUUID()));
-							// Method should have returned by now, if it didn't then ping target has failed.
-							markAsFailed(pingTarget);
-						}
-					} catch (Exception e) {
-						// ignore. We can try pinging later.
-					}
-					return null;
-				}
-			};
-			pingResults.add(this.threadPool.submit(pingTask));
-		}
-		// Wait for all pings to complete.
-		int completed = 0;
-		while (completed < pingResults.size()) {
-			Iterator<Future<Void>> it = pingResults.iterator();
-			while(it.hasNext()) {
-				Future<Void> nxt = it.next();
-				if (nxt.isDone()) {
-					it.remove();
-					completed++;
-				}
-			}
-		}
-	}*/
-	
 	/**
 	 * Performs task of one protocol period.
 	 * Picks k processes at random and pings.
@@ -278,6 +229,12 @@ public class SWIMFailureDetectorV2 implements GroupManager, MessageListener, Cal
 	private void informListeners(Process failure) {
 		for (GroupChangeListener listener: this.groupChangeListeners) {
 			listener.processLeft(failure);
+		}
+	}
+	
+	private void informProcessJoinToListeners(Process j) {
+		for (GroupChangeListener listener: this.groupChangeListeners) {
+			listener.processJoined(j);
 		}
 	}
 	
@@ -368,9 +325,40 @@ public class SWIMFailureDetectorV2 implements GroupManager, MessageListener, Cal
 		MessageType msgType = msg.getMessageType();
 		if (msgType == MessageType.PING) {
 			handlePing(sender, msg, responseWriter);
-		} else {
-			throw new RuntimeException("Can only handle ping messages.");
+		} else if(msgType == MessageType.JOINING) {
+			handleProcessJoining(sender, msg, responseWriter);
+		} else if(msgType == MessageType.JOINED) {
+			handleProcessJoined(sender, msg, responseWriter);
 		}
+		else {
+			throw new RuntimeException("Can only handle ping and process joining/joined messages.");
+		}
+	}
+
+	private void handleProcessJoining(Process sender, Message msg, ResponseWriter responseWriter) {
+		GroupMembershipMessage groupMembershipMsg = 
+				this.model.createGroupMembershipMessage(this.myIdentity, getGroupMembers());
+		try {
+			responseWriter.writeResponse(groupMembershipMsg);
+		} finally {
+			responseWriter.close();
+		}
+	}
+	
+	private void handleProcessJoined(Process sender, Message msg, ResponseWriter responseWriter) {
+		try {
+			Process joiningProcess = msg.getOriginatingSource();
+			// Remove from list of failures.
+			removeFromListOfFailures(joiningProcess);
+			this.groupMembers.add(joiningProcess);
+			informProcessJoinToListeners(joiningProcess);
+		} finally {
+			responseWriter.close();
+		}
+	}
+
+	private void removeFromListOfFailures(Process joiningProcess) {
+		this.failures.remove(joiningProcess);
 	}
 
 	private void handlePing(Process sender, Message msg, ResponseWriter responseWriter) {

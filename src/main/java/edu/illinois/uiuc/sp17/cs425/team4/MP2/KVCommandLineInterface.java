@@ -1,4 +1,4 @@
-package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
+package edu.illinois.uiuc.sp17.cs425.team4.MP2;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;

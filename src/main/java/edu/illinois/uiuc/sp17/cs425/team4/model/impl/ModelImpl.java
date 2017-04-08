@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Future;
 
+import edu.illinois.uiuc.sp17.cs425.team4.model.GroupMembershipMessage;
 import edu.illinois.uiuc.sp17.cs425.team4.model.KVAsyncOpResult;
 import edu.illinois.uiuc.sp17.cs425.team4.model.KeyDeleteMessage;
 import edu.illinois.uiuc.sp17.cs425.team4.model.KeysWriteMessage;
@@ -142,5 +143,25 @@ public class ModelImpl implements Model {
 			Map<Process, Throwable> failures,
 			Map<Process, Future<R>> inProgress) {
 		return new KVRawOpResultImpl<>(succeeded, completed, failures, inProgress);
+	}
+
+	@Override
+	public Message createProcessJoiningMessage(Process originatingProcess) {
+		return new ProcessJoiningMessageImpl(originatingProcess);
+	}
+
+	@Override
+	public Message createProcessJoiningMessage(Process originatingProcess, UUID uId) {
+		return new ProcessJoiningMessageImpl(originatingProcess, uId);
+	}
+
+	@Override
+	public GroupMembershipMessage createGroupMembershipMessage(Process originatingProcess, Set<Process> groupMembers) {
+		return new GroupMembershipMessageImpl(originatingProcess, groupMembers);
+	}
+
+	@Override
+	public GroupMembershipMessage createGroupMembershipMessage(Process originatingProcess, Set<Process> groupMembers, UUID uId) {
+		return new GroupMembershipMessageImpl(originatingProcess, groupMembers, uId);
 	}
 }

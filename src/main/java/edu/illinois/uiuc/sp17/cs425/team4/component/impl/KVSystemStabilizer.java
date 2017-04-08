@@ -49,8 +49,11 @@ public class KVSystemStabilizer<K, V> implements GroupChangeListener {
 	}
 	
 	@Override
-	public void processJoined(Process j) {
-		throw new UnsupportedOperationException();
+	@GuardedBy("this")
+	public synchronized void processJoined(Process j) {
+		// Update both rings.
+		this.activeRingTopology.addProcesses(new HashSet<>(Arrays.asList(j)));
+		this.beforeFailuresRingTopology.addProcesses(new HashSet<>(Arrays.asList(j)));
 	}
 
 	@Override

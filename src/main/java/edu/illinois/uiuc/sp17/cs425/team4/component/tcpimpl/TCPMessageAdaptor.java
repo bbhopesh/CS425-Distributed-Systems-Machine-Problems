@@ -49,10 +49,10 @@ public class TCPMessageAdaptor {
 			// I think, it is happening because readInt is throwing EOF if remote peer closes connection without writing
 			// anything. I am not sure though, need to look at javadocs and different edge cases more carefully.
 			
-			// In any case, this block is meant to detect when remtoe peer closes socket. If there is a better
+			// In any case, this block is meant to detect when remote peer closes socket. If there is a better
 			// way to detect that, then, we can move to that.
 			LOG.debug(e.getMessage());
-			throw e;
+			return null;
 		}
 	}
 
