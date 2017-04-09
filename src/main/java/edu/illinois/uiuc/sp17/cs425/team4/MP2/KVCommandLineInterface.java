@@ -213,7 +213,7 @@ public class KVCommandLineInterface {
 				Map<String, NavigableSet<Long>> ownersData = new HashMap<String,NavigableSet<Long>>();
 				List<Pair<String,Pair<Long,String>>> commands = new ArrayList<Pair<String,Pair<Long,String>>>();
 				for(int i = 0; i < this.batchSize; i++) {
-					eof = (line = bufferedReader.readLine()) != null;
+					eof = (line = bufferedReader.readLine()) == null;
 					if(eof) {break;}
 					readBatchInput(line,setData,readData,listLocalTimes,ownersData,commands);	
 				}
@@ -248,7 +248,7 @@ public class KVCommandLineInterface {
 				String key = timeAndKey.getRight();
 				if(readResult.containsKey(key)) {
 					if(readResult.get(key).containsKey(t)) {
-						System.out.println("Found: "+ key);
+						System.out.println("Found: "+ readResult.get(key).get(t));
 					}else {
 						System.out.println("Not found");
 					}
