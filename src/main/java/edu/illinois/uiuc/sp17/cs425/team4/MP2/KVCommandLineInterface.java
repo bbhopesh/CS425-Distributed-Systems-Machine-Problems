@@ -29,14 +29,12 @@ public class KVCommandLineInterface {
 	private final KVDataManager<String, String> dataManager;
 	private final KVDataPartitioner<String> dataPartitioner;
 	private final int batchSize;
-	private Long lastBatchTime;
 
 	public KVCommandLineInterface(KVDataManager<String, String> dataManager, 
 			KVDataPartitioner<String> dataPartitioner,int batchSize) {
 		this.dataManager = dataManager;
 		this.dataPartitioner = dataPartitioner;
 		this.batchSize = batchSize;
-		this.lastBatchTime = System.currentTimeMillis();
 	}
 	
 	
@@ -207,19 +205,37 @@ public class KVCommandLineInterface {
 		
 		try {
 			String line = null;
-			boolean eof = false;
-			while(!eof) {		
-				Map<String, NavigableMap<Long, String>> setData = new HashMap<String,NavigableMap<Long,String>>();
-				Map<String, NavigableSet<Long>> readData = new HashMap<String,NavigableSet<Long>>();
-				List<Long> listLocalTimes = new ArrayList<Long>();
-				Map<String, NavigableSet<Long>> ownersData = new HashMap<String,NavigableSet<Long>>();
+			boolean eof = (line = bufferedReader.readLine()) == null;
+			boolean sameOperation = true;
+			String lastOper = "";
+			while(!eof) {
+				Map<String, NavigableMap<Long, String>> setData = null;
+				Map<String, NavigableSet<Long>> readData = null;
+				Map<String, NavigableSet<Long>> ownersData = null;
+				List<Long> listLocalTimes = null;
+				lastOper = line.split(" ")[0];
+				if(lastOper.equals("SET")) {
+					setData = new HashMap<String,NavigableMap<Long,String>>();	
+				}else if(lastOper.equals("GET")) {
+					readData = new HashMap<String,NavigableSet<Long>>();	
+				}else if(lastOper.equals("OWNERS")) {
+					ownersData = new HashMap<String,NavigableSet<Long>>();	
+				}else if(lastOper.equals("LIST_LOCAL")) {
+					listLocalTimes = new ArrayList<Long>();	
+				}else {
+					System.err.println("Invalid input: " + line);
+					System.err.println("Invalid syntax, use --help to check for valid input");
+					return;
+				}
 				List<Pair<String,Pair<Long,String>>> commands = new ArrayList<Pair<String,Pair<Long,String>>>();
 				for(int i = 0; i < this.batchSize; i++) {
+					readBatchInput(line,setData,readData,listLocalTimes,ownersData,commands);
 					eof = (line = bufferedReader.readLine()) == null;
 					if(eof) {break;}
-					readBatchInput(line,setData,readData,listLocalTimes,ownersData,commands);	
+					sameOperation = lastOper.equals(line.split(" ")[0]);
+					if(!sameOperation) {break;}
 				}
-				printBatchOutput(setData,readData,listLocalTimes,ownersData,commands);
+				printBatchOutput(setData,readData,listLocalTimes,ownersData,commands,lastOper);
 			}
 		} catch (IOException e) {
 			System.err.println( "Error reading file '" + commandFile + "'");
@@ -230,15 +246,22 @@ public class KVCommandLineInterface {
 	
 	private void printBatchOutput(Map<String, NavigableMap<Long, String>> setData,
 			Map<String, NavigableSet<Long>> readData,List<Long> listLocalTimes,
-			Map<String, NavigableSet<Long>> ownersData,List<Pair<String,Pair<Long,String>>> commands) {
-		//Do the batch operation in the order of set get owners list_locals 
-		//Note list_locals does not have a batch version
-		boolean successWrite = this.dataManager.writeBatch(setData);
-		if(!successWrite) {
-			System.err.println("Fail to perform batch SET operation, some of the keys might not be set successfully");
+			Map<String, NavigableSet<Long>> ownersData,List<Pair<String,Pair<Long,String>>> commands,
+			String lastOper) {
+		
+		Map<String, NavigableMap<Long, String>> readResult = null;
+		Map<String, NavigableMap<Long, String>> ownerResult = null;
+		if(lastOper.equals("SET")) {
+			boolean successWrite = this.dataManager.writeBatch(setData);
+			if(!successWrite) {
+				System.err.println("Fail to perform batch SET operation, some of the keys might not be set successfully");
+			}	
+		}else if(lastOper.equals("GET")) {
+			readResult = this.dataManager.readBatch(readData);	
+		}else if(lastOper.equals("OWNERS")) {
+			ownerResult = this.dataManager.readBatch(ownersData);
 		}
-		Map<String, NavigableMap<Long, String>> readResult = this.dataManager.readBatch(readData);
-		Map<String, NavigableMap<Long, String>> ownerResult = this.dataManager.readBatch(ownersData);
+
 		for(int i = 0; i< commands.size(); i++) {
 			Pair<String,Pair<Long,String>> line = commands.get(i);
 			String oper = line.getLeft();
@@ -298,8 +321,7 @@ public class KVCommandLineInterface {
 		String[] parameters = line.split(" ");
 		if (parameters.length < 1) return;
 		//Guarantee the t for every operation is increment by one and thus different
-		Long t = lastBatchTime+ 1;
-		lastBatchTime = t;
+		Long t = System.currentTimeMillis();
 		if(parameters[0].equals("SET")) {
 			if(parameters.length >= 3) {
 				//The value of Set could contain spaces
