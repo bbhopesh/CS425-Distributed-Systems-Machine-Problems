@@ -238,7 +238,7 @@ public class KVCommandLineInterface {
 			System.err.println("Fail to perform batch SET operation, some of the keys might not be set successfully");
 		}
 		Map<String, NavigableMap<Long, String>> readResult = this.dataManager.readBatch(readData);
-		Map<String, NavigableMap<Long, String>> ownerResult = this.dataManager.readBatch(readData);
+		Map<String, NavigableMap<Long, String>> ownerResult = this.dataManager.readBatch(ownersData);
 		for(int i = 0; i< commands.size(); i++) {
 			Pair<String,Pair<Long,String>> line = commands.get(i);
 			String oper = line.getLeft();
@@ -247,6 +247,7 @@ public class KVCommandLineInterface {
 			}else if(oper.equals("GET")) {
 				Pair<Long,String> timeAndKey = line.getRight();
 				Long t = timeAndKey.getLeft();
+				System.err.println(t);
 				String key = timeAndKey.getRight();
 				if(readResult.containsKey(key)) {
 					if(readResult.get(key).containsKey(t)) {
@@ -297,8 +298,10 @@ public class KVCommandLineInterface {
 		if (parameters.length < 1) return;
 		Long t = System.currentTimeMillis();
 		if(t == lastBatchTime) {
+			System.err.println("Read two lines in the same time! Might cause errors setting or reading values");
 			Thread.sleep(1);
 		}
+		lastBatchTime = t;
 		if(parameters[0].equals("SET")) {
 			if(parameters.length >= 3) {
 				//The value of Set could contain spaces
