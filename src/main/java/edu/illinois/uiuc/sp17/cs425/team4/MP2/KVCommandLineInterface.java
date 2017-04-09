@@ -247,10 +247,9 @@ public class KVCommandLineInterface {
 			}else if(oper.equals("GET")) {
 				Pair<Long,String> timeAndKey = line.getRight();
 				Long t = timeAndKey.getLeft();
-				System.err.println(t);
 				String key = timeAndKey.getRight();
 				if(readResult.containsKey(key)) {
-					if(readResult.get(key).containsKey(t)) {
+					if(readResult.get(key).containsKey(t) && readResult.get(key).get(t) != null) {
 						System.out.println("Found: "+ readResult.get(key).get(t));
 					}else {
 						System.out.println("Not found");
@@ -263,7 +262,7 @@ public class KVCommandLineInterface {
 				Long t = timeAndKey.getLeft();
 				String key = timeAndKey.getRight();
 				if(ownerResult.containsKey(key)) {
-					if(ownerResult.get(key).containsKey(t)) {
+					if(ownerResult.get(key).containsKey(t) && ownerResult.get(key).get(t) != null) {
 						Process primaryPartition = this.dataPartitioner.getPrimaryPartition(key);
 						Set<Process> replicas = this.dataPartitioner.getReplicas(primaryPartition);
 						replicas.add(primaryPartition);
@@ -283,7 +282,9 @@ public class KVCommandLineInterface {
 				Long t = timeAndKey.getLeft();
 				Map<String, NavigableMap<Long, String>> localKeys = this.dataManager.getLocalSnapshot(t);
 				for(String key : localKeys.keySet()) {
-					System.out.println(key);
+					if(!localKeys.get(key).isEmpty()) {
+						System.out.println(key);
+					}
 				}
 				System.out.println("END LIST");	
 			}
@@ -296,11 +297,8 @@ public class KVCommandLineInterface {
 			Map<String, NavigableSet<Long>> ownersData,List<Pair<String,Pair<Long,String>>> commands) throws InterruptedException {
 		String[] parameters = line.split(" ");
 		if (parameters.length < 1) return;
-		Long t = System.currentTimeMillis();
-		if(t == lastBatchTime) {
-			System.err.println("Read two lines in the same time! Might cause errors setting or reading values");
-			Thread.sleep(1);
-		}
+		//Guarantee the t for every operation is increment by one and thus different
+		Long t = lastBatchTime+ 1;
 		lastBatchTime = t;
 		if(parameters[0].equals("SET")) {
 			if(parameters.length >= 3) {
@@ -362,6 +360,9 @@ public class KVCommandLineInterface {
 				System.err.println("Invalid input: " + line);
 				System.err.println("Invalid argument numbers, use --help to check for valid input");
 			}
+		}else {
+			System.err.println("Invalid input: " + line);
+			System.err.println("Invalid syntax, use --help to check for valid input");
 		}
 	}
 }
