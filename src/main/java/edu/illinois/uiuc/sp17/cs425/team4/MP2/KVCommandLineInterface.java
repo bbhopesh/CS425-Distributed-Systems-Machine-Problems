@@ -29,16 +29,18 @@ public class KVCommandLineInterface {
 	private final KVDataManager<String, String> dataManager;
 	private final KVDataPartitioner<String> dataPartitioner;
 	private final int batchSize;
+	private Long lastBatchTime;
 
 	public KVCommandLineInterface(KVDataManager<String, String> dataManager, 
 			KVDataPartitioner<String> dataPartitioner,int batchSize) {
 		this.dataManager = dataManager;
 		this.dataPartitioner = dataPartitioner;
 		this.batchSize = batchSize;
+		this.lastBatchTime = System.currentTimeMillis();
 	}
 	
 	
-	public void startInterface() {
+	public void startInterface() throws InterruptedException {
 		
 		//Display help messages, feel free to modify later 
 		displayHelpMsg();
@@ -68,7 +70,7 @@ public class KVCommandLineInterface {
 		System.out.println("------ Use keyword EXIT to exit the program ------");		
 	}
 	
-	private void readUserInput(String userInput) {
+	private void readUserInput(String userInput) throws InterruptedException {
 
 			String[] parameters = userInput.split(" ");
 			if (parameters.length < 1) return;
@@ -175,7 +177,7 @@ public class KVCommandLineInterface {
 		System.out.println("END LIST");
 	}
 	
-	private void handleBatchOperation(String commandFile,String outputFile) {
+	private void handleBatchOperation(String commandFile,String outputFile) throws InterruptedException {
 		
 		//Read command file 
         PrintStream stdout = System.out;
@@ -201,7 +203,7 @@ public class KVCommandLineInterface {
         }	
 	}
 	
-	private void batchOperationHelper(BufferedReader bufferedReader,String commandFile) {
+	private void batchOperationHelper(BufferedReader bufferedReader,String commandFile) throws InterruptedException {
 		
 		try {
 			String line = null;
@@ -290,17 +292,20 @@ public class KVCommandLineInterface {
 	
 	private void readBatchInput(String line, Map<String, NavigableMap<Long, String>> setData,
 			Map<String, NavigableSet<Long>> readData,List<Long> listLocalTimes,
-			Map<String, NavigableSet<Long>> ownersData,List<Pair<String,Pair<Long,String>>> commands) {
+			Map<String, NavigableSet<Long>> ownersData,List<Pair<String,Pair<Long,String>>> commands) throws InterruptedException {
 		String[] parameters = line.split(" ");
 		if (parameters.length < 1) return;
+		Long t = System.currentTimeMillis();
+		if(t == lastBatchTime) {
+			Thread.sleep(1);
+		}
 		if(parameters[0].equals("SET")) {
 			if(parameters.length >= 3) {
 				//The value of Set could contain spaces
 				String key = parameters[1];
 				int valueIndex = line.indexOf(" ", line.indexOf(" ") + 1) + 1;
 				String value = line.substring(valueIndex);
-				NavigableMap<Long,String> valueMap = null;
-				Long t = System.currentTimeMillis();
+				NavigableMap<Long,String> valueMap = null;				
 				if(setData.containsKey(key)) {
 					valueMap = setData.get(key);
 					valueMap.put(t, value);
@@ -317,7 +322,6 @@ public class KVCommandLineInterface {
 		}else if(parameters[0].equals("GET")) {
 			if(parameters.length == 2) {
 				NavigableSet<Long> valueSet = null;
-				Long t = System.currentTimeMillis();
 				if(readData.containsKey(parameters[1])) {
 					valueSet = readData.get(parameters[1]);
 					valueSet.add(t);
@@ -334,7 +338,6 @@ public class KVCommandLineInterface {
 		}else if(parameters[0].equals("OWNERS")) {
 			if(parameters.length == 2) {
 				NavigableSet<Long> valueSet = null;
-				Long t = System.currentTimeMillis();
 				if(ownersData.containsKey(parameters[1])) {
 					valueSet = ownersData.get(parameters[1]);
 					valueSet.add(t);
@@ -350,7 +353,6 @@ public class KVCommandLineInterface {
 			}
 		}else if(parameters[0].equals("LIST_LOCAL")) {
 			if(parameters.length == 1) {
-				Long t = System.currentTimeMillis();
 				listLocalTimes.add(t);
 				commands.add(Pair.of("LIST_LOCAL",Pair.of(t, null)));
 			}else {
