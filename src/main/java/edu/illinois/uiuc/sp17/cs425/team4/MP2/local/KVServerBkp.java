@@ -158,7 +158,7 @@ public class KVServerBkp {
 
 	private static KVCommandLineInterface createKVCmd(KVDataManager<String, String> mainDataManager,
 			KVDataPartitioner<String> ringDataPartitioner) {
-		return new KVCommandLineInterface(mainDataManager, ringDataPartitioner);
+		return new KVCommandLineInterface(mainDataManager, ringDataPartitioner,10);
 	}
 
 	private static KVDataManager<String, String> createMainDataManager(KVRawDataManager<String, String> rawDataManager, 

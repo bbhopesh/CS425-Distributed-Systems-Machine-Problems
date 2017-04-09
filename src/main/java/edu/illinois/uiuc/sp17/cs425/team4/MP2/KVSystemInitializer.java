@@ -218,7 +218,7 @@ public class KVSystemInitializer {
 	}
 
 	private void createKVCmd() {
-		this.cmd = new KVCommandLineInterface(this.dataManager, this.ringDataPartitioner);
+		this.cmd = new KVCommandLineInterface(this.dataManager, this.ringDataPartitioner,10);
 	}
 	
 	private void informGroup() {
