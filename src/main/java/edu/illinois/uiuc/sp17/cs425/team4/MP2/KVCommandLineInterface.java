@@ -8,6 +8,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -154,7 +155,7 @@ public class KVCommandLineInterface {
 			}
 			System.out.print("\n");			
 		} else {
-			System.out.println("Not found"); // TODO not in MP interface but still useful.
+			System.out.println("\n");
 		}
 	}
 	
@@ -169,7 +170,10 @@ public class KVCommandLineInterface {
 	}
 	
 	private void handleListLocalOperation() {
-		for(String key : this.dataManager.getLocalSnapshot().keySet()) {
+		Map<String, NavigableMap<Long, String>> localKeys = this.dataManager.getLocalSnapshot();
+		String[] keys = (String[]) localKeys.keySet().toArray(new String[localKeys.keySet().size()]);
+		Arrays.sort(keys);
+		for(String key : keys ) {
 			System.out.println(key);
 		}
 		System.out.println("END LIST");
@@ -295,16 +299,18 @@ public class KVCommandLineInterface {
 						}
 						System.out.print("\n");	
 					}else {
-						System.out.println("Not found");
+						System.out.println("\n");
 					}
 				}else {
-					System.out.println("Not found");
+					System.out.println("\n");
 				}
 			}else if(oper.equals("LIST_LOCAL")) {
 				Pair<Long,String> timeAndKey = line.getRight();
 				Long t = timeAndKey.getLeft();
 				Map<String, NavigableMap<Long, String>> localKeys = this.dataManager.getLocalSnapshot(t);
-				for(String key : localKeys.keySet()) {
+				String[] keys = (String[]) localKeys.keySet().toArray(new String[localKeys.keySet().size()]);
+				Arrays.sort(keys);
+				for(String key : keys) {
 					if(!localKeys.get(key).isEmpty()) {
 						System.out.println(key);
 					}
