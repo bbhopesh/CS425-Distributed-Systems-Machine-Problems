@@ -1,0 +1,16 @@
+SET key1 value 1 
+SET key2 value 2
+GET key3
+GET key2
+SET key2 value 2 new
+OWNERS key3
+OWNERS key2
+LIST_LOCAL
+LIST_LOCAL
+GET key2
+SET key3 value 3
+GET key2
+GET key2
+SET key3 value 3 new
+GET key3
+OWNERS key1

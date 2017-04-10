@@ -28,6 +28,7 @@ public class MP2Main {
 	private static int mBytes;
 	private static int kvRequestTimeout;
 	private static int kvtryCount;
+	private static int kvBatchSize;
 	
 	// Swim parameters.
 	private static int swimAckTimeout;
@@ -51,6 +52,7 @@ public class MP2Main {
 	private static final String KV_RING_mBYTES = "kv.ring.mBytes";
 	private static final String KV_REQUEST_TIMEOUT = "kv.request.timeout";
 	private static final String KV_TRY_COUNT = "kv.try.count";
+	private static final String KV_BATCH_SIZE = "kv.batch.size";
 	
 	
 	
@@ -79,7 +81,7 @@ public class MP2Main {
 	}
 	
 	private static KVSystemInitializer createKVSystemInitializer() throws IOException {
-		return new KVSystemInitializer(gatewayProcesses, myIdentity, MODEL, mBytes, numFailures, kvRequestTimeout, kvtryCount, swimAckTimeout, swimProtocolPeriod, swimMinProtocolPeriod, swimNumPingTargets);
+		return new KVSystemInitializer(gatewayProcesses, myIdentity, MODEL, mBytes, numFailures, kvRequestTimeout, kvtryCount, kvBatchSize, swimAckTimeout, swimProtocolPeriod, swimMinProtocolPeriod, swimNumPingTargets);
 	}
 
 	private static void initializeConfiguration() throws IOException {
@@ -99,6 +101,7 @@ public class MP2Main {
 		mBytes = Integer.valueOf(config.getProperty(KV_RING_mBYTES));
 		kvRequestTimeout = Integer.valueOf(config.getProperty(KV_REQUEST_TIMEOUT));
 		kvtryCount = Integer.valueOf(config.getProperty(KV_TRY_COUNT));
+		kvBatchSize = Integer.valueOf(config.getProperty(KV_BATCH_SIZE));
 		
 		// swim paramters
 		swimAckTimeout = Integer.valueOf(config.getProperty(SWIM2_ACK_TIMEOUT));

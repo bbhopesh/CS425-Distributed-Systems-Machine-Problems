@@ -45,6 +45,7 @@ public class KVSystemInitializer {
 	private final Messenger messenger;
 	private final int requestTimeout;
 	private final int tryCount;
+	private final int batchSize;
 	private final Model model;
 	
 	private Set<Process> initialGroupMembers;
@@ -73,6 +74,7 @@ public class KVSystemInitializer {
 			int numFailures,
 			int requestTimeout,
 			int tryCount,
+			int batchSize,
 			
 			// SWIM parameters below
 			int swimAckTimeout,
@@ -93,6 +95,7 @@ public class KVSystemInitializer {
 		this.numFailures = numFailures;
 		this.requestTimeout = requestTimeout;
 		this.tryCount = tryCount;
+		this.batchSize = batchSize;
 		
 		// Swim parameters.
 		this.swimAckTimeout = swimAckTimeout;
@@ -144,7 +147,6 @@ public class KVSystemInitializer {
 	}
 	
 	private void joinSystem() throws InterruptedException {
-		System.err.println(this.initialGroupMembers);
 		// Register with group manager to be up to date with group membership changes.
 		this.groupManager.registerGroupChangeListener(this.sytemStabilizer);
 		// Initialize group manager.
@@ -218,7 +220,7 @@ public class KVSystemInitializer {
 	}
 
 	private void createKVCmd() {
-		this.cmd = new KVCommandLineInterface(this.dataManager, this.ringDataPartitioner,10);
+		this.cmd = new KVCommandLineInterface(this.dataManager, this.ringDataPartitioner,this.batchSize);
 	}
 	
 	private void informGroup() {
