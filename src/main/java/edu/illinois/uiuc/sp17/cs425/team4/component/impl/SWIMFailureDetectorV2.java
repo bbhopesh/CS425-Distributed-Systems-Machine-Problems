@@ -13,8 +13,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledFuture;
-
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
 
@@ -77,8 +75,6 @@ public class SWIMFailureDetectorV2 implements GroupManager, MessageListener, Cal
 	/** Number of protocol periods elapsed. */
 	@GuardedBy("this")
 	private int protocolPeriodsElapsed;
-	/** Scheduler. */
-	private ScheduledFuture<?> gcService;
 	/** Future representing status of protocol. */
 	private Future<Void> groupManagerService;
 	
@@ -321,7 +317,6 @@ public class SWIMFailureDetectorV2 implements GroupManager, MessageListener, Cal
 	
 	@Override
 	public void close() {
-		this.gcService.cancel(true);
 		this.groupManagerService.cancel(true);
 	}
 
