@@ -8,13 +8,13 @@ import java.util.Random;
 
 public class PrepareBatchFile {
 	public static void main(String[] args) throws FileNotFoundException {
-		PrintStream ps = new PrintStream(new BufferedOutputStream(new FileOutputStream("10kKeysBatchFile.txt")), true);
-		for (int i = 1; i <= 10000; i++) {
+		PrintStream ps = new PrintStream(new BufferedOutputStream(new FileOutputStream("1mKeysBatchFile.txt")), true);
+		for (int i = 1; i <= 1000000; i++) {
 			ps.println(String.format("SET key%s value %s",i, i ));
 		}
 		
-		for (int i = 1; i <=5000; i++) {
-			int k = new Random().nextInt(10000);
+		for (int i = 1; i <=10000; i++) {
+			int k = new Random().nextInt(1000000);
 			ps.println(String.format("GET key%s",k));
 		}
 		
