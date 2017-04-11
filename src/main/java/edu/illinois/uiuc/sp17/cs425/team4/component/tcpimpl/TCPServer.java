@@ -1,6 +1,7 @@
 package edu.illinois.uiuc.sp17.cs425.team4.component.tcpimpl;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.List;
@@ -97,12 +98,17 @@ final class TCPServer implements Callable<Void> {
 	 */
 	private ServerSocket createTcpServerSocket(Integer port, 
 			TCPMessengerBuilder builder) throws IOException {
+		ServerSocket serverSocket = new ServerSocket();
+		serverSocket.setReuseAddress(true);
 		if (builder.getBacklog() == null && builder.getBindAddr() == null) {
-			return new ServerSocket(port);
+			serverSocket.bind(new InetSocketAddress(port));
+			return serverSocket;
 		} else if (builder.getBindAddr() == null) {
-			return new ServerSocket(port, builder.getBacklog());
+			serverSocket.bind(new InetSocketAddress(port), builder.getBacklog());
+			return serverSocket;
 		} else {
-			return new ServerSocket(port, builder.getBacklog(), builder.getBindAddr());
+			serverSocket.bind(new InetSocketAddress(builder.getBindAddr(), port), builder.getBacklog());
+			return serverSocket;
 		}
 	}
 	
