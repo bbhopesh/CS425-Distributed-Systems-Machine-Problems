@@ -77,7 +77,7 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 			return getLatest(readResult);
 		} else {
 			LOG.debug(String.format("Read failed even after %s tries.", this.tryCount));
-			System.err.println(String.format("Read failed even after %s tries.", this.tryCount));
+			//System.err.println(String.format("Read failed even after %s tries.", this.tryCount));
 			// TODO It's really not clear to me about what should be returned if we don't succeed even after retries.
 			// One thought was to take all the exceptions in raw result, wrap it in one and throw, and let caller deal with it.
 			// Other thought was to just return null because this class is to be used by the user interface directly.
@@ -132,7 +132,7 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 			return true;
 		} else {
 			LOG.debug(String.format("Write failed even after %s tries.", this.tryCount));
-			System.err.println(String.format("Write failed even after %s tries.", this.tryCount));
+			//System.err.println(String.format("Write failed even after %s tries.", this.tryCount));
 			// TODO It's really not clear to me about what should be returned if we don't succeed even after retries.
 			// One thought was to take all the exceptions in raw result, wrap it in one and throw, and let caller deal with it.
 			// Other thought was to just return false because this class is to be used by the user interface directly
@@ -184,7 +184,7 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 			return myData;
 		} else {
 			LOG.debug(String.format("Read for my keys failed even after %s tries.", this.tryCount));
-			System.err.println(String.format("Read for my keys failed even after %s tries.", this.tryCount));
+			//System.err.println(String.format("Read for my keys failed even after %s tries.", this.tryCount));
 			// TODO It's really not clear to me about what should be returned if we don't succeed even after retries.
 			// One thought was to take all the exceptions in raw result, wrap it in one and throw, and let caller deal with it.
 			// Other thought was to just return null because this class is to be used by the user interface directly.
@@ -219,7 +219,7 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 			return true;
 		} else {
 			LOG.debug(String.format("Batch Write failed even after %s tries.", this.tryCount));
-			System.err.println(String.format("Batch Write failed even after %s tries.", this.tryCount));
+			//System.err.println(String.format("Batch Write failed even after %s tries.", this.tryCount));
 			// TODO It's really not clear to me about what should be returned if we don't succeed even after retries.
 			// One thought was to take all the exceptions in raw result, wrap it in one and throw, and let caller deal with it.
 			// Other thought was to just return false because this class is to be used by the user interface directly
@@ -304,7 +304,7 @@ public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 			return extractValuesForTimestamps(keys, readResult);
 		} else {
 			LOG.debug(String.format("Batch Read failed even after %s tries.", this.tryCount));
-			System.err.println(String.format("Batch Read failed even after %s tries.", this.tryCount));
+			//System.err.println(String.format("Batch Read failed even after %s tries.", this.tryCount));
 			// TODO It's really not clear to me about what should be returned if we don't succeed even after retries.
 			// One thought was to take all the exceptions in raw result, wrap it in one and throw, and let caller deal with it.
 			// Other thought was to just return null because this class is to be used by the user interface directly.
