@@ -7,6 +7,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Future;
 
+import edu.illinois.uiuc.sp17.cs425.team4.model.Message.LockActionType;
+import edu.illinois.uiuc.sp17.cs425.team4.model.Message.LockType;
+
 /**
  * Factory class for various model elements.
  * 
@@ -142,6 +145,12 @@ public interface Model {
 	
 	public <K> KeyDeleteMessage<K> createKeyDeleteMessage(Process originatingProcess, K key, UUID uId);
 	
+	public <K> LockMessage<K> createLockMessage(Process originatingSource, K key, Transaction transaction, 
+												LockType lockType, LockActionType actionType);
+	
+	public <K> LockMessage<K> createLockMessage(Process originatingSource, K key, Transaction transaction, 
+												LockType lockType, LockActionType actionType, UUID uId);
+	
 	/**
 	 * Create process with provided unique id.
 	 * @param inetAddress InetAddress
@@ -160,6 +169,11 @@ public interface Model {
 	 * @return Process.
 	 */
 	public Process createProcess(InetAddress inetAddress, int port, String displayName, UUID uId);
+	
+	public Transaction createTransaction(Process owner, String displayName);
+	
+	public Transaction createTransaction(Process owner, String displayName, UUID uId);
+	
 	
 	public <R> KVAsyncOpResult<R> createKVRawOpResult(boolean succeeded, 
 							Map<Process, R> completed, 

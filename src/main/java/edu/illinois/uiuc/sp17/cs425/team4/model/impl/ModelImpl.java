@@ -11,11 +11,15 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.GroupMembershipMessage;
 import edu.illinois.uiuc.sp17.cs425.team4.model.KVAsyncOpResult;
 import edu.illinois.uiuc.sp17.cs425.team4.model.KeyDeleteMessage;
 import edu.illinois.uiuc.sp17.cs425.team4.model.KeysWriteMessage;
+import edu.illinois.uiuc.sp17.cs425.team4.model.LockMessage;
 import edu.illinois.uiuc.sp17.cs425.team4.model.KeysReadMessage;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
+import edu.illinois.uiuc.sp17.cs425.team4.model.Message.LockActionType;
+import edu.illinois.uiuc.sp17.cs425.team4.model.Message.LockType;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Model;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import edu.illinois.uiuc.sp17.cs425.team4.model.TextMessage;
+import edu.illinois.uiuc.sp17.cs425.team4.model.Transaction;
 import edu.illinois.uiuc.sp17.cs425.team4.model.ValuesMessage;
 import net.jcip.annotations.ThreadSafe;
 
@@ -163,5 +167,27 @@ public class ModelImpl implements Model {
 	@Override
 	public GroupMembershipMessage createGroupMembershipMessage(Process originatingProcess, Set<Process> groupMembers, UUID uId) {
 		return new GroupMembershipMessageImpl(originatingProcess, groupMembers, uId);
+	}
+
+	@Override
+	public Transaction createTransaction(Process owner, String displayName) {
+		return new TransactionImpl(owner, displayName);
+	}
+
+	@Override
+	public Transaction createTransaction(Process owner, String displayName, UUID uId) {
+		return new TransactionImpl(owner, displayName, uId);
+	}
+
+	@Override
+	public <K> LockMessage<K> createLockMessage(Process originatingSource, K key, Transaction transaction,
+			LockType lockType, LockActionType actionType) {
+		return new LockMessageImpl<K>(originatingSource, key, transaction, lockType, actionType);
+	}
+
+	@Override
+	public <K> LockMessage<K> createLockMessage(Process originatingSource, K key, Transaction transaction,
+			LockType lockType, LockActionType actionType, UUID uId) {
+		return new LockMessageImpl<K>(originatingSource, key, transaction, lockType, actionType, uId);
 	}
 }
