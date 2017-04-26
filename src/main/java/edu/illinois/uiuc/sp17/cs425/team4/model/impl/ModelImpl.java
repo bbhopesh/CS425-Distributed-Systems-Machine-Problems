@@ -18,6 +18,7 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.Message.LockActionType;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message.LockType;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Model;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
+import edu.illinois.uiuc.sp17.cs425.team4.model.ReleaseAllLocksMessage;
 import edu.illinois.uiuc.sp17.cs425.team4.model.TextMessage;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Transaction;
 import edu.illinois.uiuc.sp17.cs425.team4.model.ValuesMessage;
@@ -189,5 +190,15 @@ public class ModelImpl implements Model {
 	public <K> LockMessage<K> createLockMessage(Process originatingSource, K key, Transaction transaction,
 			LockType lockType, LockActionType actionType, UUID uId) {
 		return new LockMessageImpl<K>(originatingSource, key, transaction, lockType, actionType, uId);
+	}
+
+	@Override
+	public ReleaseAllLocksMessage createReleaseAllLocksMessage(Process originatingSource, Transaction transaction) {
+		return new ReleaseAllLocksMessageImpl(originatingSource, transaction);
+	}
+
+	@Override
+	public ReleaseAllLocksMessage createReleaseAllLocksMessage(Process originatingSource, Transaction transaction, UUID uId) {
+		return new ReleaseAllLocksMessageImpl(originatingSource, transaction, uId);
 	}
 }

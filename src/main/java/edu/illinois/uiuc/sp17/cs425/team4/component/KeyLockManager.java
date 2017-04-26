@@ -2,6 +2,7 @@ package edu.illinois.uiuc.sp17.cs425.team4.component;
 
 import edu.illinois.uiuc.sp17.cs425.team4.exceptions.LockServiceException;
 import edu.illinois.uiuc.sp17.cs425.team4.exceptions.NoSuchTransactionException;
+import edu.illinois.uiuc.sp17.cs425.team4.exceptions.TransactionAbortedException;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Transaction;
 
 /**
@@ -30,7 +31,7 @@ public interface KeyLockManager<K> {
 	 * @throws NoSuchTransactionException if the provided transaction doesn't exist.
 	 * @throws LockServiceException If there is some exception in handling lock request.
 	 */
-	public void acquireReadLock(Transaction transaction, K key) throws NoSuchTransactionException, LockServiceException;
+	public void acquireReadLock(Transaction transaction, K key) throws NoSuchTransactionException, LockServiceException, TransactionAbortedException;
 	
 	/**
 	 * Acquire write lock on the given key for this transaction. The method blocks until lock is available
@@ -39,7 +40,7 @@ public interface KeyLockManager<K> {
 	 * @throws NoSuchTransactionException If the provided transaction doesn't exist.
 	 * @throws LockServiceException If there is some exception in handling lock request.
 	 */
-	public void acquireWriteLock(Transaction transaction, K key) throws NoSuchTransactionException, LockServiceException;
+	public void acquireWriteLock(Transaction transaction, K key) throws NoSuchTransactionException, LockServiceException, TransactionAbortedException;
 	
 	/**
 	 * Release read lock held by given transaction on the given key.
@@ -58,6 +59,13 @@ public interface KeyLockManager<K> {
 	 * @throws LockServiceException If there is some exception in handling lock request.
 	 */
 	public void releaseWriteLock(Transaction transaction, K key) throws NoSuchTransactionException, LockServiceException;
+	
+	/**
+	 * Release all locks held by the given transaction.
+	 * @param transaction Transaction.
+	 * @throws LockServiceException If there is some exception in handling lock request.
+	 */
+	public void releaseAllLocks(Transaction transaction) throws LockServiceException;
 	
 	// TODO maybe a method to indicate that transaction is done, so that lock manager could clear transaction specific state.
 }

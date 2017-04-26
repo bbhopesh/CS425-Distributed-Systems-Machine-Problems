@@ -33,7 +33,8 @@ public interface Message extends Serializable {
 		KEYS_WRITE, // Keys Write message. Requesting to write K-V pairs.
 		VALUES, // Message containing values for key.. This is intended to be used as a response to KEYS_READ message.
 		KEY_DELETE, // Message asking remote peer to delete a key.
-		LOCK // Lock message, can be asking to acquire/release a read/write.
+		LOCK, // Lock message, can be asking to acquire/release a read/write lock for a single key.
+		RELEASE_ALL_LOCKS // Message asking lock service to release all locks.
 	}
 	
 	public enum LockType {

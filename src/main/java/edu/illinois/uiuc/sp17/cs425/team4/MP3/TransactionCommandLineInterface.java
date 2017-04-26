@@ -69,6 +69,7 @@ public class TransactionCommandLineInterface {
 			if (this.activeTransaction == null) {
 				System.out.println("No active transaction.");
 			} else {
+				this.lockManager.releaseAllLocks(this.activeTransaction);
 				this.activeTransaction = null;
 				// TODO cleanup abort etc.
 			}

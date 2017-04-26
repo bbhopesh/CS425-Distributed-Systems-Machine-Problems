@@ -7,14 +7,29 @@ public class LockTesting {
 
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
-		ReadWriteLock lock = new ReentrantReadWriteLock();
-		System.out.println("Locking read lock on thread: " + Thread.currentThread().getId());
+		ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+		System.out.println("Locking write lock on thread: " + Thread.currentThread().getId());
 		lock.writeLock().lock();
 		lock.readLock().lock();
+		/*lock.readLock().lock();
 		System.out.println("Unlocking read lock on thread: " + Thread.currentThread().getId());
-		System.out.println("Hmmmmmmmm");
-		lock.readLock().unlock();
-		lock.writeLock().unlock();
+		System.out.println("Hmmmmmmmm");*/
+		//lock.readLock().unlock();
+		//lock.writeLock().unlock();
+		//new MyThread(lock).start();
+		//System.out.println("Locking read lock on thread: " + Thread.currentThread().getId());
+		//System.out.println(lock.getReadHoldCount());
+        System.out.println("kk");
+		lock.writeLock().lock();
+        System.out.println("jj");
+        System.out.println(lock.getReadHoldCount());
+        int k = lock.getWriteHoldCount();
+        System.out.println(k);
+        for (int i = 0; i < k; i++) {
+        	lock.writeLock().unlock();
+        }
+        
+        //new MyThread(lock).start();
 		
 	}
 	
@@ -27,8 +42,8 @@ public class LockTesting {
 		}
 		
 		public void run() {
-			System.out.println("Unlocking read lock on thread: " + Thread.currentThread().getId());
-	        this.readWriteLock.readLock().unlock();
+			System.out.println("Locking read lock on thread: " + Thread.currentThread().getId());
+	        this.readWriteLock.readLock().lock();
 	    }
 	}
 	

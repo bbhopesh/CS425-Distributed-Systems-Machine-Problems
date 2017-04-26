@@ -151,6 +151,10 @@ public interface Model {
 	public <K> LockMessage<K> createLockMessage(Process originatingSource, K key, Transaction transaction, 
 												LockType lockType, LockActionType actionType, UUID uId);
 	
+	public ReleaseAllLocksMessage createReleaseAllLocksMessage(Process originatingSource, Transaction transaction);
+	
+	public ReleaseAllLocksMessage createReleaseAllLocksMessage(Process originatingSource, Transaction transaction, UUID uId);
+	
 	/**
 	 * Create process with provided unique id.
 	 * @param inetAddress InetAddress

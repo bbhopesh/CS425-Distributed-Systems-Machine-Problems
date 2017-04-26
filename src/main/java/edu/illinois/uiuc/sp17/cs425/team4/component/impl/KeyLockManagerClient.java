@@ -13,6 +13,7 @@ import edu.illinois.uiuc.sp17.cs425.team4.component.Messenger;
 import edu.illinois.uiuc.sp17.cs425.team4.component.ResponseWriter;
 import edu.illinois.uiuc.sp17.cs425.team4.exceptions.LockServiceException;
 import edu.illinois.uiuc.sp17.cs425.team4.exceptions.NoSuchTransactionException;
+import edu.illinois.uiuc.sp17.cs425.team4.exceptions.TransactionAbortedException;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message.LockActionType;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message.LockType;
@@ -76,7 +77,7 @@ public class KeyLockManagerClient<K> implements KeyLockManager<K>, MessageListen
 	}
 
 	@Override
-	public void acquireReadLock(Transaction transaction, K key) throws NoSuchTransactionException {
+	public void acquireReadLock(Transaction transaction, K key) throws NoSuchTransactionException, LockServiceException, TransactionAbortedException {
 		// Check
 		checkTransactionExists(transaction);
 		LOG.info(String.format("Transaction %s requesting read lock on key %s",
@@ -93,14 +94,14 @@ public class KeyLockManagerClient<K> implements KeyLockManager<K>, MessageListen
 	}
 	
 	@Override
-	public void acquireWriteLock(Transaction transaction, K key) throws NoSuchTransactionException {
+	public void acquireWriteLock(Transaction transaction, K key) throws NoSuchTransactionException, LockServiceException, TransactionAbortedException {
 		// Check
 		checkTransactionExists(transaction);
 		LOG.info(String.format("Transaction %s requesting write lock on key %s",
 				transaction.getDisplayName(), key));
 		// Request
-		Message acquireReadLockMessage = createAcquireWriteLockMessage(transaction, key);
-		this.messenger.send(Pair.of(this.lockService, acquireReadLockMessage), 0); // Infinite timeout
+		Message acquireWriteLockMessage = createAcquireWriteLockMessage(transaction, key);
+		this.messenger.send(Pair.of(this.lockService, acquireWriteLockMessage), 0); // Infinite timeout
 		// Wait.
 		waitForRequestToBeFulfilled();
 	}
@@ -111,14 +112,14 @@ public class KeyLockManagerClient<K> implements KeyLockManager<K>, MessageListen
 
 	@Override
 	public void releaseReadLock(Transaction transaction, K key)
-			throws NoSuchTransactionException, IllegalMonitorStateException {
+			throws NoSuchTransactionException, LockServiceException {
 		// Check
 		checkTransactionExists(transaction);
 		LOG.info(String.format("Transaction %s attempting to release read lock on key %s",
 				transaction.getDisplayName(), key));
 		// Request
-		Message acquireReadLockMessage = createReleaseReadLockMessage(transaction, key);
-		this.messenger.send(Pair.of(this.lockService, acquireReadLockMessage), 0); // Infinite timeout
+		Message releaseReadLockMessage = createReleaseReadLockMessage(transaction, key);
+		this.messenger.send(Pair.of(this.lockService, releaseReadLockMessage), 0); // Infinite timeout
 		// Wait.
 		waitForRequestToBeFulfilled();
 		
@@ -130,14 +131,14 @@ public class KeyLockManagerClient<K> implements KeyLockManager<K>, MessageListen
 
 	@Override
 	public void releaseWriteLock(Transaction transaction, K key)
-			throws NoSuchTransactionException, IllegalMonitorStateException {
+			throws NoSuchTransactionException, LockServiceException {
 		// Check
 		checkTransactionExists(transaction);
 		LOG.info(String.format("Transaction %s attempting to release write lock on key %s",
 				transaction.getDisplayName(), key));
 		// Request
-		Message acquireReadLockMessage = createReleaseWriteLockMessage(transaction, key);
-		this.messenger.send(Pair.of(this.lockService, acquireReadLockMessage), 0); // Infinite timeout
+		Message releaseWriteLockMessage = createReleaseWriteLockMessage(transaction, key);
+		this.messenger.send(Pair.of(this.lockService, releaseWriteLockMessage), 0); // Infinite timeout
 		// Wait.
 		waitForRequestToBeFulfilled();
 	}
@@ -145,9 +146,26 @@ public class KeyLockManagerClient<K> implements KeyLockManager<K>, MessageListen
 	private Message createReleaseWriteLockMessage(Transaction transaction, K key) {
 		return stampIdentifier(this.model.createLockMessage(this.myIdentity, key, transaction, LockType.WRITE, LockActionType.RELEASE));
 	}
+	
+	@Override
+	public void releaseAllLocks(Transaction transaction) throws LockServiceException {
+		// Check
+		checkTransactionExists(transaction);
+		LOG.info(String.format("Transaction %s attempting to release all held locks.",
+				transaction.getDisplayName()));
+		// Request
+		Message releaseAllLocksMessage = createReleaseAllLocksMessage(transaction);
+		this.messenger.send(Pair.of(this.lockService, releaseAllLocksMessage), 0); // Infinite timeout
+		// Wait.
+		waitForRequestToBeFulfilled();
+	}
+
+	private Message createReleaseAllLocksMessage(Transaction transaction) {
+		return stampIdentifier(this.model.createReleaseAllLocksMessage(this.myIdentity, transaction));
+	}
 
 	private void waitForRequestToBeFulfilled() {
-		// Using condition queues would be better here but polling is okay :)
+		// Using condition queues would be better here but polling is okay too :)
 		
 		while (true) {
 			synchronized(this) {
@@ -158,7 +176,7 @@ public class KeyLockManagerClient<K> implements KeyLockManager<K>, MessageListen
 							return; 
 						} else {
 							LOG.info("Request failed.");
-							throw new LockServiceException(this.lockServiceResult.getErrorMessage());
+							throw this.lockServiceResult.getError();
 						}
 					} finally {
 						// Get ready for next request.
@@ -184,9 +202,9 @@ public class KeyLockManagerClient<K> implements KeyLockManager<K>, MessageListen
 			// Not verifying source of message, should be lock service.
 			Message message = sourceAndMsg.getRight();
 			if (message.getMetadata().getBoolean(SUCCESS_MESSAGE_KEY)) {
-				this.lockServiceResult = new Result(true);
+				this.lockServiceResult = new Result();
 			} else {
-				this.lockServiceResult = new Result(false, message.getMetadata().getString(ERROR_CLASS_KEY),
+				this.lockServiceResult = new Result(message.getMetadata().getString(ERROR_CLASS_KEY),
 														message.getMetadata().getString(ERROR_MESSAGE_KEY));
 			}
 		} finally {
@@ -216,30 +234,50 @@ public class KeyLockManagerClient<K> implements KeyLockManager<K>, MessageListen
 	}
 	
 	private static class Result {
-		private boolean success;
+		private final boolean success;
 		
-		private String errorMessage;
+		private final String errorClass;
 		
-		public Result(boolean success, String errorClass, String errorMessage) {
-			this(success, String.format("%s occured at remote with message: %s", errorClass, errorMessage));
+		private final String errorMessage;
+		
+		public Result(String errorClass, String errorMessage) {
+			this(false, errorClass, errorMessage);
 		}
 		
-		public Result(boolean success) {
-			this(success, null);
+		public Result() {
+			this(true, null, null);
 		}
 		
-		private Result(boolean success, String errorMessage) {
+		private Result(boolean success, String errorClass, String errorMessage) {
 			this.success = success;
-			this.errorMessage = errorMessage;
+			this.errorClass = errorClass == null ? "" : errorClass;
+			this.errorMessage = errorMessage == null ? "" : errorMessage;
 		}
 		
 		public boolean isSuccess() {
 			return this.success;
 		}
 		
-		public String getErrorMessage() {
-			return this.errorMessage;
+		@SuppressWarnings({ "rawtypes", "unchecked" })
+		public RuntimeException getError() {
+			try {
+				Class c = Class.forName(this.errorClass);
+				System.out.println(this.errorClass);
+				System.out.println(this.errorMessage);
+				Throwable d = (Throwable) c.getDeclaredConstructor(String.class).newInstance(this.errorMessage);
+				if (d instanceof InterruptedException) {
+					// Using interruptible locks is the strategy to safely kill one of the transactions in case of deadlocks.
+					// Deadlock doctor at lock server will interrupt the transaction thread that it wants to kill.
+					// That interrupted exception will be sent here by the lock server and we will translate it to transaction
+					// aborted exception.
+					return new TransactionAbortedException(this.errorMessage, d);
+				} else {
+					return new LockServiceException(d.getMessage(), d);
+				}
+			} catch (Exception e) {
+				return new LockServiceException(String.format("%s occured at remote with message: %s",
+														this.errorClass, this.errorMessage));
+			}
 		}
 	}
-
 }
