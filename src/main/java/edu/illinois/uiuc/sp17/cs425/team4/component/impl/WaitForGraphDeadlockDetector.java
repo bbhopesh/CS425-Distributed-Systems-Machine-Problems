@@ -65,24 +65,19 @@ public class WaitForGraphDeadlockDetector<K> implements TransactionsDeadlockDete
 			Set<Lock<K>> waitingOn = this.wants.get(waitingTransaction);
 			if (waitingOn != null && !waitingOn.isEmpty()) {
 				for (Lock<K> waitingOnLock: waitingOn) {
-					// System.out.println("-------------------------------------------");
-					// System.out.println("Transaction " + waitingTransaction + " waiting on " +  waitingOnLock);
 					if (waitingOnLock.lockType == LockType.READ) {
 						// If transaction is waiting on read lock, then add an edge to all transactions who are holding write lock.
 						addEdges(waitingTransaction, this.writeLockHolders.get(waitingOnLock.key), waitForGraph);
-						// System.out.println("Transaction waiting on transactions: " + this.writeLockHolders.get(waitingOnLock.key));
 					}
 					
 					if (waitingOnLock.lockType == LockType.WRITE) {
 						// If transaction is waiting on write lock, then add an edge to all transactions who are holding write lock or read lock
 						addEdges(waitingTransaction, this.writeLockHolders.get(waitingOnLock.key), waitForGraph);
 						addEdges(waitingTransaction, this.readLockHolders.get(waitingOnLock.key), waitForGraph);
-						// System.out.println("Transaction waiting on transactions: " + this.writeLockHolders.get(waitingOnLock.key) + this.readLockHolders.get(waitingOnLock.key));
 					}
 					
 					if (waitingOnLock.lockType == LockType.READ_TO_WRITE_UPGRADE) {
 						addEdges(waitingTransaction, this.rToWUpgradeLockHolders.get(waitingOnLock.key), waitForGraph);
-						// System.out.println("Transaction waiting on transactions: " + this.rToWUpgradeLockHolders.get(waitingOnLock.key));
 					}
 				}
 			}
@@ -108,7 +103,6 @@ public class WaitForGraphDeadlockDetector<K> implements TransactionsDeadlockDete
 	public void wantWriteLock(Transaction transaction, K key) {
 		this.transactions.add(transaction);
 		
-		// System.out.println("Transacation " + transaction + " wants write lock on key " + key);
 		addToWantedLocks(transaction, key, LockType.WRITE);
 	}
 
@@ -116,7 +110,6 @@ public class WaitForGraphDeadlockDetector<K> implements TransactionsDeadlockDete
 	public void gotWriteLock(Transaction transaction, K key) {
 		this.transactions.add(transaction);
 		
-		// System.out.println("Transacation " + transaction + " got write lock on key " + key);
 		removeFromWantedLocks(transaction, key, LockType.WRITE);
 		addToHoldedLocks(transaction, key, this.writeLockHolders);
 		// Actually only one transaction can have write lock, so set should always have one element.
@@ -133,7 +126,6 @@ public class WaitForGraphDeadlockDetector<K> implements TransactionsDeadlockDete
 	public void wantReadLock(Transaction transaction, K key) {
 		this.transactions.add(transaction);
 		
-		// System.out.println("Transacation " + transaction + " wants read lock on key " + key);
 		addToWantedLocks(transaction, key, LockType.READ);
 	}
 
@@ -141,15 +133,12 @@ public class WaitForGraphDeadlockDetector<K> implements TransactionsDeadlockDete
 	public void gotReadLock(Transaction transaction, K key) {
 		this.transactions.add(transaction);
 		
-		// System.out.println("Transacation " + transaction + " got read lock on key " + key);
 		removeFromWantedLocks(transaction, key, LockType.READ);
 		addToHoldedLocks(transaction, key, this.readLockHolders);
-		// System.out.println("Read lock holds: " + this.readLockHolders);
 	}
 
 	@Override
 	public void releaseReadLock(Transaction transaction, K key) {
-		// System.out.println("Transacation " + transaction + " wants to release lock on key " + key);
 		this.transactions.add(transaction);
 		
 		removeFromHoldedLocks(transaction, key, this.readLockHolders);
@@ -158,7 +147,7 @@ public class WaitForGraphDeadlockDetector<K> implements TransactionsDeadlockDete
 	@Override
 	public void wantReadToWriteUpgradeLock(Transaction transaction, K key) {
 		this.transactions.add(transaction);
-		// System.out.println("Transacation " + transaction + " wants upgrade lock on key " + key);
+
 		addToWantedLocks(transaction, key, LockType.READ_TO_WRITE_UPGRADE);
 	}
 
@@ -166,7 +155,6 @@ public class WaitForGraphDeadlockDetector<K> implements TransactionsDeadlockDete
 	public void gotReadToWriteUpgradeLock(Transaction transaction, K key) {
 		this.transactions.add(transaction);
 		
-		// System.out.println("Transacation " + transaction + " got upgrade lock on key " + key);
 		removeFromWantedLocks(transaction, key, LockType.READ_TO_WRITE_UPGRADE);
 		addToHoldedLocks(transaction, key, this.rToWUpgradeLockHolders);
 		// Actually only one transaction can have upgrade lock, so set should always have one element.
@@ -178,13 +166,6 @@ public class WaitForGraphDeadlockDetector<K> implements TransactionsDeadlockDete
 		
 		removeFromHoldedLocks(transaction, key, this.rToWUpgradeLockHolders);
 	}
-
-	/*private void addToHoldedLocks(Transaction transaction, K key, LockType lockType) {
-		Lock<K> lock = new Lock<K>(lockType, key);
-		this.holders.putIfAbsent(lock, Collections.newSetFromMap(new ConcurrentHashMap<>()));
-		Set<Transaction> transactionsHoldingLock = this.holders.get(lock);
-		transactionsHoldingLock.add(transaction);
-	}*/
 	
 	private void addToHoldedLocks(Transaction transaction, K key, ConcurrentMap<K, Set<Transaction>> holders) {
 		holders.putIfAbsent(key, Collections.newSetFromMap(new ConcurrentHashMap<>()));
@@ -197,11 +178,6 @@ public class WaitForGraphDeadlockDetector<K> implements TransactionsDeadlockDete
 		Set<Lock<K>> wantedLocks = this.wants.get(transaction);
 		wantedLocks.add(new Lock<K>(lockType, key));
 	}
-	
-	/*private void removeFromHoldedLocks(Transaction transaction, K key, LockType lockType) {
-		Lock<K> lock = new Lock<K>(lockType, key);
-		this.holders.remove(lock);
-	}*/
 	
 	private void removeFromHoldedLocks(Transaction transaction, K key, ConcurrentMap<K, Set<Transaction>> holders) {
 		Set<Transaction> transactions = holders.get(key);
@@ -269,8 +245,5 @@ public class WaitForGraphDeadlockDetector<K> implements TransactionsDeadlockDete
 		public String toString() {
 			return "Lock [lockType=" + lockType + ", key=" + key + "]";
 		}
-		
-		
 	}
-
 }
