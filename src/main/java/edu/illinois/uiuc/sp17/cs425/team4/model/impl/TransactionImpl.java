@@ -65,6 +65,11 @@ public class TransactionImpl implements Transaction, Serializable {
 			return false;
 		return true;
 	}
+
+	@Override
+	public String toString() {
+		return this.displayName;
+	}
 	
 	
 	
