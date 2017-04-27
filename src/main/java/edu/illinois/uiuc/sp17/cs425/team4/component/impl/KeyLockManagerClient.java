@@ -148,20 +148,19 @@ public class KeyLockManagerClient<K> implements KeyLockManager<K>, MessageListen
 	}
 	
 	@Override
-	public void releaseAllLocks(Transaction transaction) throws LockServiceException {
+	public void closeTransaction(Transaction transaction) throws LockServiceException {
 		// Check
 		checkTransactionExists(transaction);
 		LOG.info(String.format("Transaction %s attempting to release all held locks.",
 				transaction.getDisplayName()));
 		// Request
-		Message releaseAllLocksMessage = createReleaseAllLocksMessage(transaction);
-		this.messenger.send(Pair.of(this.lockService, releaseAllLocksMessage), 0); // Infinite timeout
-		// Wait.
-		waitForRequestToBeFulfilled();
+		Message closeTransactionMessage = createCloseTransactionMessage(transaction);
+		this.messenger.send(Pair.of(this.lockService, closeTransactionMessage), 100); // Arbitrary timeout.
+		this.transactions.remove(transaction);
 	}
 
-	private Message createReleaseAllLocksMessage(Transaction transaction) {
-		return stampIdentifier(this.model.createReleaseAllLocksMessage(this.myIdentity, transaction));
+	private Message createCloseTransactionMessage(Transaction transaction) {
+		return stampIdentifier(this.model.createCloseTransactionMessage(this.myIdentity, transaction));
 	}
 
 	private void waitForRequestToBeFulfilled() {

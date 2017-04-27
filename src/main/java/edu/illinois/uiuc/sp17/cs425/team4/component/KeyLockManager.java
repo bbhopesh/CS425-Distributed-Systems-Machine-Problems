@@ -65,7 +65,7 @@ public interface KeyLockManager<K> {
 	 * @param transaction Transaction.
 	 * @throws LockServiceException If there is some exception in handling lock request.
 	 */
-	public void releaseAllLocks(Transaction transaction) throws LockServiceException;
+	public void closeTransaction(Transaction transaction) throws LockServiceException;
 	
 	// TODO maybe a method to indicate that transaction is done, so that lock manager could clear transaction specific state.
 }

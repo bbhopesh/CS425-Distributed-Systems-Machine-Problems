@@ -25,7 +25,7 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.Message.LockType;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message.MessageType;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Model;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
-import edu.illinois.uiuc.sp17.cs425.team4.model.ReleaseAllLocksMessage;
+import edu.illinois.uiuc.sp17.cs425.team4.model.CloseTransactionMessage;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Transaction;
 
 public class KeyLockManagerServer<K> implements MessageListener, DeadlockListener {
@@ -39,7 +39,6 @@ public class KeyLockManagerServer<K> implements MessageListener, DeadlockListene
 	private final ConcurrentMap<K, ReentrantReadWriteLock> readWriteLocks;
 	private final ConcurrentMap<K, ReentrantLock> upgradeReadToWriteLocks;
 	
-	// TODO We can optimize to remove transactions that are committed or aborted, not doing as of now.
 	private final ConcurrentMap<Transaction, TransactionThread<K>> transactionThreads;
 	
 	private final WaitForGraphDeadlockDetector<K> deadlockDoctor;
@@ -63,16 +62,6 @@ public class KeyLockManagerServer<K> implements MessageListener, DeadlockListene
 		this.deadlockDoctor.initialize();
 	}
 
-	@Override
-	public void abortTransaction(Transaction transaction) {
-		Thread thread = getTransactionThread(transaction);
-		if (thread != null) {
-			// Upon receiving the interrupt, thread will inform transaction owner and abort itself. 
-			thread.interrupt();
-			this.transactionThreads.remove(transaction);
-		}
-	}
-	
 	// This method gets called asynchronously when a request comes in.
 	@Override
 	public void messageReceived(Pair<Process, Message> sourceAndMsg, ResponseWriter responseWriter) {
@@ -88,13 +77,10 @@ public class KeyLockManagerServer<K> implements MessageListener, DeadlockListene
 				LockActionType actionType = lockMsg.getActionType();
 				K key = lockMsg.getKey();
 				processNewRequest(transaction, lockType, actionType, key);
-			} else if (msg.getMessageType() == MessageType.RELEASE_ALL_LOCKS) {
-				ReleaseAllLocksMessage releaseMsg = (ReleaseAllLocksMessage) msg;
-				releaseAllLocks(releaseMsg.getTransaction());
+			} else if (msg.getMessageType() == MessageType.CLOSE_TRANSACTION) {
+				CloseTransactionMessage closeTransactionMessage = (CloseTransactionMessage) msg;
+				closeTransaction(closeTransactionMessage.getTransaction());
 			}
-			
-			
-			
 		} finally {
 			// We are not using response writer at all.
 			// Response writer is meant to respond on the same incoming socket connection,
@@ -105,10 +91,23 @@ public class KeyLockManagerServer<K> implements MessageListener, DeadlockListene
 		
 	}
 	
-	private void releaseAllLocks(Transaction transaction) {
+	@Override
+	public void abortTransaction(Transaction transaction) {
+		Thread thread = getTransactionThread(transaction);
+		if (thread != null) {
+			// We will interrupt deadlocked thread.
+			// Deadlocked thread on receiving interruption will release held locks and inform transaction owner that it has been aborted.
+			thread.interrupt();
+			this.transactionThreads.remove(transaction);
+		}
+	}
+	
+	private void closeTransaction(Transaction transaction) {
 		TransactionThread<K> transactionThread = getTransactionThread(transaction);
-		transactionThread.setCloseTransaction();
-		// Transaction thread wakes up every 5 ms and looks for new requests and process them and replies directly to transaction owner.
+		if (transactionThread != null) {
+			transactionThread.setCloseTransaction();
+			this.transactionThreads.remove(transaction);
+		}
 	}
 
 
@@ -126,7 +125,6 @@ public class KeyLockManagerServer<K> implements MessageListener, DeadlockListene
 		ReentrantLock upgradeLock = new ReentrantLock();
 		this.upgradeReadToWriteLocks.putIfAbsent(key, upgradeLock);
 	}
-
 
 	private TransactionThread<K> getTransactionThread(Transaction transaction) {
 		TransactionThread<K> transactionThread = new TransactionThread<>(transaction, this.messenger,
@@ -158,7 +156,7 @@ public class KeyLockManagerServer<K> implements MessageListener, DeadlockListene
 		private K key;
 		private boolean newRequest;
 		
-		private boolean releaseAllLocks;
+		private boolean closeTransaction;
 		
 		private final Transaction transaction;
 		private final Messenger messenger;
@@ -192,7 +190,7 @@ public class KeyLockManagerServer<K> implements MessageListener, DeadlockListene
 			this.allLockedKeys = new HashSet<>();
 			
 			this.newRequest = false;
-			this.releaseAllLocks = false;
+			this.closeTransaction = false;
 		}
 		
 		public synchronized void setState(LockType lockType, LockActionType actionType, K key) {
@@ -206,12 +204,11 @@ public class KeyLockManagerServer<K> implements MessageListener, DeadlockListene
 		}
 		
 		public synchronized void setCloseTransaction() {
-			this.newRequest = true;
-			this.releaseAllLocks = true;
+			this.closeTransaction = true;
 		}
 		
 		public void run() {
-			LOG.info("Starting thread.");
+			LOG.info(String.format("Starting thread with %s id for transaction %s ", Thread.currentThread().getId(), this.transaction));
 			while (true) {
 				synchronized(this) { 
 					// Using intrinsic locking here won't be a cause of deadlocks among transactions.
@@ -219,6 +216,14 @@ public class KeyLockManagerServer<K> implements MessageListener, DeadlockListene
 					// Because each transaction has their own thread, this intrinsic lock cannot cause deadlock between multiple locks.
 					// Deadlock across multiple transactions can only happen because of locks on a key.
 					try {
+						if(this.closeTransaction) {
+							// Poison. We could have received poison because of two reasons:
+							// 1. Deadlock and then interrupt(handled below at time of lock acquisition)
+							// 2. Client wanting to close transaction.
+							closeTransaction();
+							break;
+						}
+						
 						if (this.newRequest) {
 							try {
 								// When request is processed, we don't inform anyone in current JVM, 
@@ -228,7 +233,6 @@ public class KeyLockManagerServer<K> implements MessageListener, DeadlockListene
 								this.newRequest = false;
 							}
 						}
-						
 					} catch(Throwable t) {
 						// ignore. Always go on in loop, thread should never die.
 					}/* finally {
@@ -248,13 +252,14 @@ public class KeyLockManagerServer<K> implements MessageListener, DeadlockListene
 					// Therefore, when the thread is interrupted to recover from deadlock, it won't be stuck in Thread.sleep
 					// but one of the lock methods. Hence, we can safely ignore InterruptedException here.
 				}
-			}	
+			}
+			LOG.info(String.format("Closing thread with %s id for transaction %s ", Thread.currentThread().getId(), this.transaction));
 		}
 
 		private void handleInterruption() {
-			// Interruption is a signal that deadlock doctor wants to abort transaction associated with this thread.
-			// Release locks.
-			releaseAllLocksLocal();
+			LOG.info(String.format("Transaction %s interrupted while waiting on a lock for key %s.", this.transaction, this.key));
+			// We will just set close transaction. Due to this in the next iteration, we will release all locks and shut down.
+			setCloseTransaction();
 		}
 
 		private void processNewRequest() {
@@ -262,15 +267,7 @@ public class KeyLockManagerServer<K> implements MessageListener, DeadlockListene
 			// Clients should make sure that they don't send a new request until they receive response for previous one.
 			// Otherwise they won't be able to map responses to requests.
 			
-			// TODO Add the lock acquire requests to some graph structure to detect deadlocks.
-			
-			if (this.releaseAllLocks) {
-				try {
-					releaseAllLocks();
-				} finally {
-					this.releaseAllLocks = false;
-				}
-			} else if (this.lockType == LockType.READ && actionType == LockActionType.ACQUIRE) {
+			if (this.lockType == LockType.READ && actionType == LockActionType.ACQUIRE) {
 				processReadAcquireRequest();
 			} else if (this.lockType == LockType.READ && actionType == LockActionType.RELEASE) {
 				processReadReleaseRequest();
@@ -282,26 +279,12 @@ public class KeyLockManagerServer<K> implements MessageListener, DeadlockListene
 			
 		}
 		
-		private void releaseAllLocks() {
-			LOG.info(String.format("Transaction %s requesting to release all locks.",
-					this.transaction.getDisplayName()));
-			Message message = createAckMessage();
-			try {
-				releaseAllLocksLocal();
-				LOG.info(String.format("Transaction %s request fulffiled successfully",
-					this.transaction.getDisplayName()));
-				setSuccess(message);
-			} catch(Throwable t) {
-				LOG.info(String.format("Transaction %s request failed.",
-					this.transaction.getDisplayName()));
-				setError(message, t);
-			}
-			// Only trying once, if message sending fails we are doomed. Hopefully, TCP will save us.
-			// Receiver should close socket if they don't want to send response, otherwise wait here will be infinite.
-			this.messenger.send(Pair.of(this.transaction.getOwner(), message), 0); // 0 is infinite timeout.			
+		private void closeTransaction() {
+			LOG.info(String.format("Cleaning up and closing transaction %s.", this.transaction.getDisplayName()));
+			releaseAllLocks();
 		}
 		
-		private void releaseAllLocksLocal() {
+		private void releaseAllLocks() {
 			// This method is called to release all locks when thread is interrupted and asked to abort the transaction.
 			// This method shouldn't throw any exception, otherwise locks won't be released and we are doomed.
 			
@@ -332,6 +315,7 @@ public class KeyLockManagerServer<K> implements MessageListener, DeadlockListene
 				if (i == 0) {
 					// Only inform once.
 					this.deadlockDetector.releaseReadToWriteUpgradeLock(this.transaction, this.key);
+					LOG.info(String.format("Transaction %s releasing read to write upgrade lock on key: %s", this.transaction, this.key));
 				}
 			}
 		}
@@ -352,7 +336,7 @@ public class KeyLockManagerServer<K> implements MessageListener, DeadlockListene
 				setSuccess(message);
 			} catch (InterruptedException e) {
 				handleInterruption();
-				setError(message, e);
+				setError(message, e); // To inform client that we are aborting him.
 			} catch(Throwable t) {
 				LOG.info(String.format("Transaction %s request failed.",
 						this.transaction.getDisplayName()));
@@ -395,7 +379,7 @@ public class KeyLockManagerServer<K> implements MessageListener, DeadlockListene
 				setSuccess(message);
 			} catch (InterruptedException e) {
 				handleInterruption();
-				setError(message, e);
+				setError(message, e); // To inform client that we are aborting him.
 			} catch(Throwable t) {
 				LOG.info(String.format("Transaction %s request failed.",
 						this.transaction.getDisplayName()));
@@ -414,6 +398,8 @@ public class KeyLockManagerServer<K> implements MessageListener, DeadlockListene
 			try {
 				// Logic to handle the case when a thread is upgrading from read lock to write lock.
 				 
+				LOG.info(String.format("Transaction %s requesting read to write upgrade lock on key %s",
+					this.transaction.getDisplayName(), this.key));
 				this.deadlockDetector.wantReadToWriteUpgradeLock(this.transaction, this.key);
 				lock1.lockInterruptibly();
 				this.deadlockDetector.gotReadToWriteUpgradeLock(this.transaction, this.key);
@@ -432,11 +418,11 @@ public class KeyLockManagerServer<K> implements MessageListener, DeadlockListene
 				// but it will be stuck at writeLock until writeLock is available again.
 				
 				// I hope that the above logic will let us safely upgrade a read lock to write lock.
-				// Only issue left is when two threads have read locks and both want to upgrade.
+				// Only issue is when two threads have read locks and both want to upgrade.
 				// In such a case, one of them will enter lock1 but wait on writeLock and other guy will keep on waiting on lock1.
 				// Thread waiting on writeLock will not get it because the other thread has readLock, while the thread
 				// waiting on lock1 will not get it because first thread has it and is waiting for writeLock.
-				// TODO We have a deadlock, hope to solve this with deadlock detector that I will write next.
+				// We have a deadlock, deadlock detector will save us.
 			} finally {
 				releaseUpgradeLockCompletely(lock1);
 			}
@@ -450,6 +436,7 @@ public class KeyLockManagerServer<K> implements MessageListener, DeadlockListene
 				if (i == 0) {
 					// Only inform once.
 					this.deadlockDetector.releaseReadLock(this.transaction, this.key);
+					LOG.info(String.format("Transaction %s releasing read lock on key: %s", this.transaction, this.key));
 				}
 			}
 		}
@@ -462,6 +449,7 @@ public class KeyLockManagerServer<K> implements MessageListener, DeadlockListene
 				if (i == 0) {
 					// Only inform once.
 					this.deadlockDetector.releaseWriteLock(this.transaction, this.key);
+					LOG.info(String.format("Transaction %s releasing write lock on key: %s", this.transaction, this.key));
 				}
 			}
 		}
