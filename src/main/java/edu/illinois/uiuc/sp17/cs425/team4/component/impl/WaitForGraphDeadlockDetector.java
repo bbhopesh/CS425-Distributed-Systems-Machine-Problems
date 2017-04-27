@@ -1,6 +1,7 @@
 package edu.illinois.uiuc.sp17.cs425.team4.component.impl;
 
 import java.util.Collections;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -10,6 +11,7 @@ import org.jgrapht.alg.CycleDetector;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
 
+import edu.illinois.uiuc.sp17.cs425.team4.component.DeadlockListener;
 import edu.illinois.uiuc.sp17.cs425.team4.component.TransactionsDeadlockDetector;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Transaction;
 
@@ -25,34 +27,48 @@ public class WaitForGraphDeadlockDetector<K> implements TransactionsDeadlockDete
 	private final ConcurrentMap<K, Set<Transaction>> writeLockHolders;
 	// Maps what read to write upgrade locks are held by which transactions.
 	private final ConcurrentMap<K, Set<Transaction>> rToWUpgradeLockHolders;
+	private final Thread deadlockDetectorThread;
+	private final DeadlockListener deadlockListener;
 	
 	
-	public WaitForGraphDeadlockDetector() {
+	public WaitForGraphDeadlockDetector(DeadlockListener deadlockListener) {
 		this.transactions = Collections.newSetFromMap(new ConcurrentHashMap<>());
 		this.wants =  new ConcurrentHashMap<>();
 		this.readLockHolders = new ConcurrentHashMap<>();
 		this.writeLockHolders = new ConcurrentHashMap<>();
 		this.rToWUpgradeLockHolders = new ConcurrentHashMap<>();
+		
+		this.deadlockDetectorThread = new Thread(this);
+		
+		this.deadlockListener = deadlockListener;
 	}
 	
+	@Override
+	public void initialize() {
+		this.deadlockDetectorThread.start();
+	}
+	
+	@Override
 	public void run() {
 		while (true) {
 			
-			DirectedGraph<Transaction, DefaultEdge> waitForGraph = buildGraph();
+			DirectedGraph<Transaction, DefaultEdge> waitForGraph = buildWaitForGraph();
 			CycleDetector<Transaction, DefaultEdge> cycleDetector = new CycleDetector<>(waitForGraph);
 			Set<Transaction> cycleEdges = cycleDetector.findCycles();
 			if (cycleEdges != null && !cycleEdges.isEmpty()) {
-				System.out.println(cycleEdges);
+				// Randomly abort a transaction.
+				this.deadlockListener.abortTransaction(cycleEdges.iterator().next());
 			}
 			
 			try {
 				Thread.sleep(20);
 			} catch (InterruptedException e) {
+				break;
 			}
 		}
 	}
 	
-	private DirectedGraph<Transaction, DefaultEdge> buildGraph() {
+	private DirectedGraph<Transaction, DefaultEdge> buildWaitForGraph() {
 		// All our maps are thread-safe, even if updates to multiple maps are not atomic, it's okay
 		// because once a deadlock occurs, it will stay as it, so in subsequent transaction, we will find it.
 		// Also we always remove information before adding, so multiple updates across maps shouldn't cause false deadlocks.
@@ -192,8 +208,26 @@ public class WaitForGraphDeadlockDetector<K> implements TransactionsDeadlockDete
 	
 	@Override
 	public void clear(Transaction transaction) {
-		this.transactions.add(transaction);
+		this.transactions.remove(transaction);
+		this.wants.remove(transaction);
+		removeTransactionFromHolded(transaction, this.readLockHolders);
+		removeTransactionFromHolded(transaction, this.writeLockHolders);
+		removeTransactionFromHolded(transaction, this.rToWUpgradeLockHolders);
 	}
+	
+	private void removeTransactionFromHolded(Transaction transaction, ConcurrentMap<K, Set<Transaction>> holder) {
+		for (Entry<K, Set<Transaction>> e: holder.entrySet()) {
+			e.getValue().remove(transaction);
+		}
+	}
+	
+	
+	@Override
+	public void close() {
+		this.deadlockDetectorThread.interrupt();
+	}
+	
+	
 	private enum LockType {
 		READ,
 		WRITE,

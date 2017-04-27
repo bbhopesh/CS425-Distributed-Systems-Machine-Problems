@@ -12,6 +12,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
 
+import edu.illinois.uiuc.sp17.cs425.team4.component.DeadlockListener;
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListener;
 import edu.illinois.uiuc.sp17.cs425.team4.component.MessageListenerIdentifier;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Messenger;
@@ -27,7 +28,7 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import edu.illinois.uiuc.sp17.cs425.team4.model.ReleaseAllLocksMessage;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Transaction;
 
-public class KeyLockManagerServer<K> implements MessageListener {
+public class KeyLockManagerServer<K> implements MessageListener, DeadlockListener {
 
 	/** Listener Identifier. */
 	private static final String S_IDENTIFIER = "KeyLockService";
@@ -58,10 +59,20 @@ public class KeyLockManagerServer<K> implements MessageListener {
 		this.messenger.registerListener(this);
 		this.myIdentity = myIdentity;
 		this.model = model;
-		this.deadlockDoctor = new WaitForGraphDeadlockDetector<>();
-		new Thread(this.deadlockDoctor).start();
+		this.deadlockDoctor = new WaitForGraphDeadlockDetector<>(this);
+		this.deadlockDoctor.initialize();
 	}
 
+	@Override
+	public void abortTransaction(Transaction transaction) {
+		Thread thread = getTransactionThread(transaction);
+		if (thread != null) {
+			// Upon receiving the interrupt, thread will inform transaction owner and abort itself. 
+			thread.interrupt();
+			this.transactionThreads.remove(transaction);
+		}
+	}
+	
 	// This method gets called asynchronously when a request comes in.
 	@Override
 	public void messageReceived(Pair<Process, Message> sourceAndMsg, ResponseWriter responseWriter) {
@@ -96,7 +107,7 @@ public class KeyLockManagerServer<K> implements MessageListener {
 	
 	private void releaseAllLocks(Transaction transaction) {
 		TransactionThread<K> transactionThread = getTransactionThread(transaction);
-		transactionThread.setReleaseAllLocks();
+		transactionThread.setCloseTransaction();
 		// Transaction thread wakes up every 5 ms and looks for new requests and process them and replies directly to transaction owner.
 	}
 
@@ -194,7 +205,7 @@ public class KeyLockManagerServer<K> implements MessageListener {
 			this.allLockedKeys.add(key);
 		}
 		
-		public synchronized void setReleaseAllLocks() {
+		public synchronized void setCloseTransaction() {
 			this.newRequest = true;
 			this.releaseAllLocks = true;
 		}
@@ -242,8 +253,6 @@ public class KeyLockManagerServer<K> implements MessageListener {
 
 		private void handleInterruption() {
 			// Interruption is a signal that deadlock doctor wants to abort transaction associated with this thread.
-			// I will obey the doctor and release all my locks, so that I can be aborted by client.
-			
 			// Release locks.
 			releaseAllLocksLocal();
 		}

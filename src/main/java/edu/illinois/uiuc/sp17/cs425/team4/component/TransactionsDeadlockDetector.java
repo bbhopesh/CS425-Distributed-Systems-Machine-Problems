@@ -3,6 +3,9 @@ package edu.illinois.uiuc.sp17.cs425.team4.component;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Transaction;
 
 public interface TransactionsDeadlockDetector<K> {
+	
+	public void initialize();
+	
 	public void wantWriteLock(Transaction transaction, K key);
 	
 	public void gotWriteLock(Transaction transaction, K key);
@@ -22,4 +25,6 @@ public interface TransactionsDeadlockDetector<K> {
 	public void releaseReadToWriteUpgradeLock(Transaction transaction, K key);
 	
 	public void clear(Transaction transaction);
+	
+	public void close();
 }
