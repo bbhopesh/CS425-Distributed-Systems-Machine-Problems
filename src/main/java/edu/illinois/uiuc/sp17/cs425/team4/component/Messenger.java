@@ -27,7 +27,7 @@ public interface Messenger {
 	 * @return The reply of the sent message.
 	 * @throws MessengerException if there is a problem in sending the message.
 	 * Implementations should always wrap underlying error in MessengerException and then throw it,
-	 * and also document what would be cause of ContextedRuntimeException in what situations.
+	 * and also document what would be cause of MessengerException in what situations.
 	 * e.g. If there is a TCP implementation of the messenger and connection is refused or message reached
 	 * other end but while replying to the message, remote host died, then, appropriate IOException/SocketTimeoutException
 	 * etc. should be wrapped in MessengerException and thrown.

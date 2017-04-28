@@ -5,12 +5,12 @@ import java.util.Scanner;
 import edu.illinois.uiuc.sp17.cs425.team4.component.KeyLockManager;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Transaction;
 
-public class TransactionCommandLineInterface {
+public class LockServiceCommandLineInterface {
 	
 	private final KeyLockManager<String> lockManager;
 	private Transaction activeTransaction;
 	
-	public TransactionCommandLineInterface(KeyLockManager<String> lockManager) {
+	public LockServiceCommandLineInterface(KeyLockManager<String> lockManager) {
 		this.lockManager = lockManager;
 		this.activeTransaction = null;
 	}

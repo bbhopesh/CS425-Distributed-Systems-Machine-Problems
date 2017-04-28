@@ -261,8 +261,6 @@ public class KeyLockManagerClient<K> implements KeyLockManager<K>, MessageListen
 		public RuntimeException getError() {
 			try {
 				Class c = Class.forName(this.errorClass);
-				System.out.println(this.errorClass);
-				System.out.println(this.errorMessage);
 				Throwable d = (Throwable) c.getDeclaredConstructor(String.class).newInstance(this.errorMessage);
 				if (d instanceof InterruptedException) {
 					// Using interruptible locks is the strategy to safely kill one of the transactions in case of deadlocks.

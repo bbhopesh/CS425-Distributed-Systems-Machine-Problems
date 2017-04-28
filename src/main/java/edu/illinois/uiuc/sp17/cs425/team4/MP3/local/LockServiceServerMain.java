@@ -1,4 +1,4 @@
-package edu.illinois.uiuc.sp17.cs425.team4.MP3;
+package edu.illinois.uiuc.sp17.cs425.team4.MP3.local;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -7,39 +7,29 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import edu.illinois.uiuc.sp17.cs425.team4.component.KeyLockManager;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Messenger;
-import edu.illinois.uiuc.sp17.cs425.team4.component.impl.KeyLockManagerClient;
+import edu.illinois.uiuc.sp17.cs425.team4.component.impl.KeyLockManagerServer;
 import edu.illinois.uiuc.sp17.cs425.team4.component.tcpimpl.TCPMessageAdaptor;
 import edu.illinois.uiuc.sp17.cs425.team4.component.tcpimpl.TCPMessengerBuilder;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Model;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import edu.illinois.uiuc.sp17.cs425.team4.model.impl.ModelImpl;
 
-public class Client2 {
-
+public class LockServiceServerMain {
 	private static Process myIdentity;
-	private static Process lockService;
-	
-	private static int port = 10015;
-	private static String name = "C2";
-	
-	private static ExecutorService threadPool = Executors.newFixedThreadPool(10);
-	
 	private static int lockServicePort = 10005;
 	private static String lockServiceName = "LockService";
+	private static ExecutorService threadPool = Executors.newFixedThreadPool(10);
 	
 	/** Model. */
 	private static final Model MODEL = new ModelImpl();
 	
-	public static void main(String[] args) throws IOException, InterruptedException {
+	public static void main(String[] args) throws IOException {
 		initializeMyself();
-		initializeLockService();
 		Messenger messenger = createTCPMessenger();
 		messenger.initialize();
-		KeyLockManager<String> lockManager = new KeyLockManagerClient<String>(messenger, myIdentity, MODEL, lockService);
-		TransactionCommandLineInterface cmd = new TransactionCommandLineInterface(lockManager);
-		cmd.startInterface();
+		//KeyLockManagerServer<String> x = 
+		new KeyLockManagerServer<String>(messenger, myIdentity, MODEL);
 	}
 	
 	/**
@@ -48,12 +38,6 @@ public class Client2 {
 	 */
 	private static void initializeMyself() throws UnknownHostException {
 		myIdentity = MODEL.createProcess(
-								InetAddress.getByName("localhost"),
-								port, name, new UUID(new Long(1), 02));
-	}
-	
-	private static void initializeLockService() throws UnknownHostException {
-		lockService = MODEL.createProcess(
 								InetAddress.getByName("localhost"),
 								lockServicePort, lockServiceName, new UUID(new Long(1), 02));
 	}

@@ -1,4 +1,4 @@
-package edu.illinois.uiuc.sp17.cs425.team4.MP3;
+package edu.illinois.uiuc.sp17.cs425.team4.MP3.local;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -7,6 +7,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import edu.illinois.uiuc.sp17.cs425.team4.MP3.LockServiceCommandLineInterface;
 import edu.illinois.uiuc.sp17.cs425.team4.component.KeyLockManager;
 import edu.illinois.uiuc.sp17.cs425.team4.component.Messenger;
 import edu.illinois.uiuc.sp17.cs425.team4.component.impl.KeyLockManagerClient;
@@ -16,13 +17,13 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.Model;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import edu.illinois.uiuc.sp17.cs425.team4.model.impl.ModelImpl;
 
-public class Client3 {
+public class LockServiceClient1 {
 
 	private static Process myIdentity;
 	private static Process lockService;
 	
-	private static int port = 10020;
-	private static String name = "C3";
+	private static int port = 10010;
+	private static String name = "C1";
 	
 	private static ExecutorService threadPool = Executors.newFixedThreadPool(10);
 	
@@ -38,7 +39,7 @@ public class Client3 {
 		Messenger messenger = createTCPMessenger();
 		messenger.initialize();
 		KeyLockManager<String> lockManager = new KeyLockManagerClient<String>(messenger, myIdentity, MODEL, lockService);
-		TransactionCommandLineInterface cmd = new TransactionCommandLineInterface(lockManager);
+		LockServiceCommandLineInterface cmd = new LockServiceCommandLineInterface(lockManager);
 		cmd.startInterface();
 	}
 	
