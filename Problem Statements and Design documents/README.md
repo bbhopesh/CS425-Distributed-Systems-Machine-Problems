@@ -18,7 +18,7 @@
 * Run lock server on machine 9 with command: `java -cp "lib/*"  edu.illinois.uiuc.sp17.cs425.team4.MP3.LockService`
 * Run clients on machines 6 to 8 with command: `java -cp "lib/*"  edu.illinois.uiuc.sp17.cs425.team4.MP3.Client`
  
- ## Load testing
+## Load testing
 * `git clone https://github.com/XueweiKent/428mp3demo.git`
 * `cp 428mp3demo/* .`
 * `python load_test1.py java -cp "lib/*"  edu.illinois.uiuc.sp17.cs425.team4.MP3.Client`
