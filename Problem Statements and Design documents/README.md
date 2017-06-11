@@ -1,6 +1,6 @@
 # Transfer code to cluster and setup
-* `./transfer-binary.sh VM_NUMS USER` e.g. `./transfer-binary.sh 10 bbassi2`
-* `cd /home/USER/CS425-Distributed-Systems-Machine-Problems`
+* `./transfer-binary.sh $VM_NUMS $USER` e.g. `./transfer-binary.sh 10 bbassi2`
+* `cd /home/$USER/CS425-Distributed-Systems-Machine-Problems`
 
 
 # MP1
