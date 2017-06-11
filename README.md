@@ -1,16 +1,23 @@
 # Synopsis
-This project implements a Key-Value storage system that supports an interface with following operations: **SET, GET, OWNER, LIST_LOCAL, BATCH**. This system allows users to write to a key in any VM, then read the key from any VM. Machines is allowed to leave and join at anytime as long as there are three VMs up in the system at the same time. Keys will be rebalanced after a new VM has joined or left.
+This repository contains all the three machine problems that were part of CS425: Distributed Systems course at UIUC, Spring 2017.
+The three machine problems are as following:
+1. Totally-ordered fault-tolerant group chat application.
+2. Fault-tolerant in-memory key value store.
+3. Distributed transactions system with serial equivalence and deadlock detection.
 
-# Building
-1. Git clone this repo into a local directory.
 
-2. cd to project home directory and run sh transfer-binary.sh VM_NUMS USERNAME. This shell script will build the application and transfer the built tar file to VM_NUMS of virtual machines assigned to our group(gourp 4).It will also untar the files on the root directory of the VM.
+# Directory structure
+* Detailed problem statements and design documents could be found in directory "Problem Statements and Design documents."
+* Rest of the directory structure is in accordance with gradle/maven defalt directory structure.
 
-3. SSH to the machines assigned to our group
 
-4. cd to CS425-MP1/lib and run java -cp "*" edu.illinois.uiuc.sp17.cs425.team4.MP2.MP2Main. 
+# Key algorithms implemented and other learnings
+1. ISIS totally ordered multicast.
+2. SWIM failure detector.
+3. Cassandra/Chord based ring partitioned key-value store which tolerates certain number of failures by making those many extra copies. These copies were made when SWIM failure detector detected failures.
+4. Two-phase locking for serial equivalence in distributed transactions.
+5. Deadlock detection b constructing wait for graph between transactions.
 
-5. Repeat step 4 on at least three machines to start the system.
 
 # Authors
 Bhopesh Bassi: bbassi2@illinois.edu
