@@ -7,8 +7,8 @@ The three machine problems are as following:
 
 
 # Directory structure
-* Detailed problem statements, design documents and instrunctions to run code are in directory "Problem Statements and Design documents."
-* Rest of the directory structure is in accordance with gradle/maven defalt directory structure.
+* Detailed problem statements, design documents and instructions to run code are in directory "Problem Statements and Design documents."
+* Rest of the directory structure is in accordance with gradle/maven default directory structure.
 
 
 # Key algorithms implemented
