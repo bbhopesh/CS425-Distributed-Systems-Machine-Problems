@@ -19,12 +19,25 @@ import edu.illinois.uiuc.sp17.cs425.team4.component.HashFunction;
 import edu.illinois.uiuc.sp17.cs425.team4.component.RingTopology;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 
+/**
+ * A Cassandra like ring which uses hashing to partition data across ring.
+ * 
+ * @author bbassi2
+ *
+ * @param <K> Key type.
+ */
 public class CassandraLikeRing<K> implements RingTopology<K> {
+	/** Logger. */
 	private final static Logger LOG = Logger.getLogger(CassandraLikeRing.class.getName());
+	/** Mapping of process to an integer(place on ring.) */
 	private final NavigableMap<BigInteger, Process> processes;
+	/** Hash function. */
 	private final HashFunction hashFunction;
+	/** Number of bytes the hash is truncated to before converting to a number to map on a string. */
 	private final int mBytes;
+	/** Key codec. */
 	private final Codec<K> keyCodec;
+	/** Process codec. */
 	private final Codec<Process> processCodec;
 
 	public CassandraLikeRing(Set<Process> initialProcesses,

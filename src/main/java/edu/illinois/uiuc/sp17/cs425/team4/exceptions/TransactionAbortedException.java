@@ -1,5 +1,11 @@
 package edu.illinois.uiuc.sp17.cs425.team4.exceptions;
 
+/**
+ * An exception raised when system decides to abort an transaction.
+ * 
+ * @author bbassi2.
+ *
+ */
 public class TransactionAbortedException extends RuntimeException {
 	/**
 	 * 

@@ -1,5 +1,11 @@
 package edu.illinois.uiuc.sp17.cs425.team4.exceptions;
 
+/**
+ * An exception to be raised from locking service.
+ * 
+ * @author bbassi2
+ *
+ */
 public class LockServiceException extends RuntimeException {
 
 	

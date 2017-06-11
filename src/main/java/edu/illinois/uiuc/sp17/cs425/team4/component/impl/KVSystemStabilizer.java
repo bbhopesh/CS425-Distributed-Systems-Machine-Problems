@@ -14,6 +14,16 @@ import edu.illinois.uiuc.sp17.cs425.team4.component.RingTopology;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import net.jcip.annotations.GuardedBy;
 
+/**
+ * Listens for failures and stabilizes system by making copies of keys stored on failed processes.
+ * 
+ * Where to keep more copies is decided using data partitioner.
+ * 
+ * @author bbassi2
+ *
+ * @param <K> Key type.
+ * @param <V> Value type.
+ */
 public class KVSystemStabilizer<K, V> implements GroupChangeListener {
 	
 	private final static Logger LOG = Logger.getLogger(KVSystemStabilizer.class.getName());

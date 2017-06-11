@@ -8,6 +8,15 @@ import edu.illinois.uiuc.sp17.cs425.team4.component.KVDataPartitioner;
 import edu.illinois.uiuc.sp17.cs425.team4.component.RingTopology;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 
+/**
+ * A ring partitioner that partitions keys across a ring. 
+ * Number of replicas(other than primary replica) are equal to number of maximum failures to be tolerated.
+ * 
+ * Half of replicas are predecessors of primary replica and half are successors.
+ * @author bbassi2
+ *
+ * @param <K> Key type.
+ */
 public class KVRingDataPartitioner<K> implements KVDataPartitioner<K> {
 	
 	private final RingTopology<K> ringTopology;

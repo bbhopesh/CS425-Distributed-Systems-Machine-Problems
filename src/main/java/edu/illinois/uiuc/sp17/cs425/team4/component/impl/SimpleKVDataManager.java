@@ -18,6 +18,13 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.KVAsyncOpResult;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import edu.illinois.uiuc.sp17.cs425.team4.util.KVUtils;
 
+/**
+ * A simple key-value store data manager.
+ * @author bbassi2
+ *
+ * @param <K> Key type.
+ * @param <V> Value type.
+ */
 public class SimpleKVDataManager<K,V> implements KVDataManager<K, V> {
 
 	private final static Logger LOG = Logger.getLogger(SimpleKVDataManager.class.getName());

@@ -28,6 +28,15 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import edu.illinois.uiuc.sp17.cs425.team4.model.CloseTransactionMessage;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Transaction;
 
+/**
+ * Key lock server.
+ * This class serves request from different (remote) transactions.
+ * It runs a thread per transaction and submits request for this transaction on that thread.
+ * 
+ * @author bbassi2
+ *
+ * @param <K> Key type.
+ */
 public class KeyLockManagerServer<K> implements MessageListener, DeadlockListener {
 
 	/** Listener Identifier. */
@@ -35,18 +44,27 @@ public class KeyLockManagerServer<K> implements MessageListener, DeadlockListene
 	/** Listener Identifier. */
 	private static final MessageListenerIdentifier IDENTIFIER = 
 			new MessageListenerIdentifierImpl(S_IDENTIFIER);
-	
+	/** Read write lock for keys. */
 	private final ConcurrentMap<K, ReentrantReadWriteLock> readWriteLocks;
+	/** Locks to upgrade atomically upgrade read locks to write locks. */
 	private final ConcurrentMap<K, ReentrantLock> upgradeReadToWriteLocks;
-	
+	/** Mapping a transaction to a thread. */
 	private final ConcurrentMap<Transaction, TransactionThread<K>> transactionThreads;
-	
+	/** Deadlock detector. */
 	private final WaitForGraphDeadlockDetector<K> deadlockDoctor;
-	
+	/** Messenger. */
 	private final Messenger messenger;
+	/** Process representing identity of lock service. */
 	private final Process myIdentity;
+	/** Model. */
 	private final Model model;
 	
+	/**
+	 * Create an instance.
+	 * @param messenger Messenger.
+	 * @param myIdentity Identity of lock service. 
+	 * @param model Model.
+	 */
 	public KeyLockManagerServer(Messenger messenger,
 									Process myIdentity,
 									Model model) {
@@ -294,28 +312,28 @@ public class KeyLockManagerServer<K> implements MessageListener, DeadlockListene
 				K lockedKey = lockedKeysIt.next();
 				ReentrantReadWriteLock reLock = this.readWriteLocks.get(lockedKey);
 				// Release read lock.
-				releaseReadLockCompletely(reLock);
+				releaseReadLockCompletely(reLock, lockedKey);
 				
 				// Release write lock.
-				releaseWriteLockCompletely(reLock);
+				releaseWriteLockCompletely(reLock, lockedKey);
 				
 				// Release upgrade locks.
 				ReentrantLock readToWriteUpgradeLock = this.upgradeReadToWriteLocks.get(lockedKey);
-				releaseUpgradeLockCompletely(readToWriteUpgradeLock);
+				releaseUpgradeLockCompletely(readToWriteUpgradeLock, lockedKey);
 				
 				// Remove.
 				lockedKeysIt.remove();
 			}
 		}
 		
-		private void releaseUpgradeLockCompletely(ReentrantLock readToWriteUpgradeLock) {
+		private void releaseUpgradeLockCompletely(ReentrantLock readToWriteUpgradeLock, K key) {
 			int k = readToWriteUpgradeLock.getHoldCount();
 			for (int i = 0; i < k; i++) {
 				readToWriteUpgradeLock.unlock();
 				if (i == 0) {
 					// Only inform once.
-					this.deadlockDetector.releaseReadToWriteUpgradeLock(this.transaction, this.key);
-					LOG.info(String.format("Transaction %s releasing read to write upgrade lock on key: %s", this.transaction, this.key));
+					this.deadlockDetector.releaseReadToWriteUpgradeLock(this.transaction, key);
+					LOG.info(String.format("Transaction %s releasing read to write upgrade lock on key: %s", this.transaction, key));
 				}
 			}
 		}
@@ -354,7 +372,7 @@ public class KeyLockManagerServer<K> implements MessageListener, DeadlockListene
 			Message message = createAckMessage();
 			try {
 				ReentrantReadWriteLock lock = this.readWriteLocks.get(this.key);
-				releaseReadLockCompletely(lock);
+				releaseReadLockCompletely(lock, this.key);
 				LOG.info(String.format("Transaction %s request fulffiled successfully",
 						this.transaction.getDisplayName()));
 				setSuccess(message);
@@ -405,7 +423,7 @@ public class KeyLockManagerServer<K> implements MessageListener, DeadlockListene
 				this.deadlockDetector.gotReadToWriteUpgradeLock(this.transaction, this.key);
 				
 				// Only one thread can reach here, so we can atomically release read lock and acquire write lock.
-				releaseReadLockCompletely(lock2);
+				releaseReadLockCompletely(lock2, this.key);
 				
 				this.deadlockDetector.wantWriteLock(this.transaction, this.key);
 				lock2.writeLock().lockInterruptibly();
@@ -424,32 +442,32 @@ public class KeyLockManagerServer<K> implements MessageListener, DeadlockListene
 				// waiting on lock1 will not get it because first thread has it and is waiting for writeLock.
 				// We have a deadlock, deadlock detector will save us.
 			} finally {
-				releaseUpgradeLockCompletely(lock1);
+				releaseUpgradeLockCompletely(lock1, this.key);
 			}
 		}
 
-		private void releaseReadLockCompletely(ReentrantReadWriteLock lock) {
+		private void releaseReadLockCompletely(ReentrantReadWriteLock lock, K key) {
 			// If this thread doesn't hold read lock, this method is a no-op.
 			int k = lock.getReadHoldCount();
 			for (int i = 0; i < k; i++) {
 				lock.readLock().unlock();
 				if (i == 0) {
 					// Only inform once.
-					this.deadlockDetector.releaseReadLock(this.transaction, this.key);
-					LOG.info(String.format("Transaction %s releasing read lock on key: %s", this.transaction, this.key));
+					this.deadlockDetector.releaseReadLock(this.transaction, key);
+					LOG.info(String.format("Transaction %s releasing read lock on key: %s", this.transaction, key));
 				}
 			}
 		}
 		
-		private void releaseWriteLockCompletely(ReentrantReadWriteLock lock) {
+		private void releaseWriteLockCompletely(ReentrantReadWriteLock lock, K key) {
 			// If this thread doesn't hold write lock, this method is a no-op.
 			int k = lock.getWriteHoldCount();
 			for (int i = 0; i < k; i++) {
 				lock.writeLock().unlock();
 				if (i == 0) {
 					// Only inform once.
-					this.deadlockDetector.releaseWriteLock(this.transaction, this.key);
-					LOG.info(String.format("Transaction %s releasing write lock on key: %s", this.transaction, this.key));
+					this.deadlockDetector.releaseWriteLock(this.transaction, key);
+					LOG.info(String.format("Transaction %s releasing write lock on key: %s", this.transaction, key));
 				}
 			}
 		}
@@ -460,7 +478,7 @@ public class KeyLockManagerServer<K> implements MessageListener, DeadlockListene
 			Message message = createAckMessage();
 			try {
 				ReentrantReadWriteLock lock = this.readWriteLocks.get(this.key);
-				releaseWriteLockCompletely(lock);
+				releaseWriteLockCompletely(lock, this.key);
 				LOG.info(String.format("Transaction %s request fulffiled successfully",
 						this.transaction.getDisplayName()));
 				setSuccess(message);

@@ -15,6 +15,13 @@ import edu.illinois.uiuc.sp17.cs425.team4.component.DeadlockListener;
 import edu.illinois.uiuc.sp17.cs425.team4.component.TransactionsDeadlockDetector;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Transaction;
 
+/**
+ * Detects deadlock by constructing wait for graph between transactions and detecting cycles in the graph.
+ * 
+ * @author bbassi2
+ *
+ * @param <K> Key type.
+ */
 public class WaitForGraphDeadlockDetector<K> implements TransactionsDeadlockDetector<K>, Runnable {
 	
 	private final Set<Transaction> transactions;

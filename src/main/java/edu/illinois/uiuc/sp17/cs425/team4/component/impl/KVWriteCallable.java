@@ -13,7 +13,14 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.Message;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Model;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 
-
+/**
+ * A callable to write data to another (remote) process.
+ * 
+ * @author bbassi2.
+ *
+ * @param <K> Key type.
+ * @param <V> Value type.
+ */
 final class KVWriteCallable<K, V> implements Callable<Boolean> {
 
 	private final static Logger LOG = Logger.getLogger(KVWriteCallable.class.getName());

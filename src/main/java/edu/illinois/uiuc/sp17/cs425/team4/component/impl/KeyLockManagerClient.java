@@ -30,6 +30,21 @@ import net.jcip.annotations.NotThreadSafe;
 // It might seem weird that a lock manager is not meant to be used in multi-threaded environment
 // but we are in a distributed environment and this lock manager is supposed to be used only in process
 // Similarly each process will have a lock manager and all these will talk to one global lock service.
+
+/**
+ * Locking service client.
+ * 
+ * Should be used by one and only one thread.
+ * If multiple threads access at once, we don't have enough synchronization to protect state.
+ * Also, multiple requests will go to lock service and we will no way to map response to request.
+ * It might seem weird that a lock manager is not meant to be used in multi-threaded environment
+ * but we are in a distributed environment and this lock manager is supposed to be used only in process.
+ * Similarly each process will have a lock manager and all these will talk to one global lock service.
+ *  
+ * @author bbassi2
+ *
+ * @param <K> Key type.
+ */
 public class KeyLockManagerClient<K> implements KeyLockManager<K>, MessageListener {
 	/**  Logger. */
 	private final static Logger LOG = Logger.getLogger(KeyLockManagerClient.class.getName());
@@ -41,22 +56,35 @@ public class KeyLockManagerClient<K> implements KeyLockManager<K>, MessageListen
 			new MessageListenerIdentifierImpl(S_IDENTIFIER);
 	
 	
-	// Following three constants should be same as in KeyLockManagerServer
+	// TODO Following three constants should be same as in KeyLockManagerServer. Maybe move to a common place.
+	/** Key against which name of the error class will be stored.*/
 	private static final String ERROR_CLASS_KEY = "ErrorClass";
+	/** Key against which error message is stored in the meassage. */
 	private static final String ERROR_MESSAGE_KEY = "ErrorMessage";
+	/** Key against which success message is stored. */
 	private static final String SUCCESS_MESSAGE_KEY = "SuccessMessage.";
-	
+	/** Messenger. */
 	private final Messenger messenger;
+	/** Process representing identity of current process. */
 	private final Process myIdentity;
+	/** Model. */
 	private final Model model;
+	/** Lock service process. */
 	private final Process lockService;
-	
+	/** Transactions count. */
 	private int transactionsCount;
+	/** Current set of transactions. */
 	private final Set<Transaction> transactions;
-	
+	/** Result of request to lock service. This result is for entire instance so a new request shouldn't be sent until first is received. */
 	private Result lockServiceResult;
 	
-	
+	/**
+	 * Create instance.
+	 * @param messenger Messenger.
+	 * @param myIdentity My identity.
+	 * @param model Model.
+	 * @param lockService Lock service.
+	 */
 	public KeyLockManagerClient(Messenger messenger, Process myIdentity, Model model, Process lockService) {
 		this.messenger = messenger;
 		this.messenger.registerListener(this);

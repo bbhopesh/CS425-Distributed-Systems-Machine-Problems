@@ -28,6 +28,15 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.ValuesMessage;
 import edu.illinois.uiuc.sp17.cs425.team4.util.KVUtils;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Message.MessageType;
 
+/**
+ * A raw data manager which does reads/writes sequentially.
+ * This essentially means that there will be no pending read/writes in the returned result object.
+ * 
+ * @author bbassi2
+ *
+ * @param <K> Key type.
+ * @param <V> Value type.
+ */
 public class SequentialKVRawDataManager<K, V> implements KVRawDataManager<K, V>, MessageListener {
 	private final static Logger LOG = Logger.getLogger(SequentialKVRawDataManager.class.getName());
 	/** Listener Identifier. */

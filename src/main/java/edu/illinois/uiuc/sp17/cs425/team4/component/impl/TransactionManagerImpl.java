@@ -23,6 +23,14 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import net.jcip.annotations.NotThreadSafe;
 
 @NotThreadSafe
+/**
+ * A transaction manager.
+ * 
+ * @author bbassi2.
+ *
+ * @param <K>
+ * @param <V>
+ */
 public class TransactionManagerImpl<K, V> implements TransactionManager<K, V> {
 
 	private static final long DUMMY_TIMESTAMP = Long.MAX_VALUE;

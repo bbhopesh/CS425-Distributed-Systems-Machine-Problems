@@ -16,8 +16,16 @@ import edu.illinois.uiuc.sp17.cs425.team4.model.Model;
 import edu.illinois.uiuc.sp17.cs425.team4.model.Process;
 import edu.illinois.uiuc.sp17.cs425.team4.model.ValuesMessage;
 
+/**
+ * A callable to read data from another (remote) process.
+ * 
+ * @author bbassi2.
+ *
+ * @param <K> Key type.
+ * @param <V> Value type.
+ */
 final class KVReadCallable<K, V> implements Callable<Map<K, NavigableMap<Long, V>>> {
-	
+	/** Logger. */
 	private final static Logger LOG = Logger.getLogger(KVReadCallable.class.getName());
 	private final Set<K> keys;
 	private final Messenger messenger;

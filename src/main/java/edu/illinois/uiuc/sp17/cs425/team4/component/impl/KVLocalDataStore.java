@@ -15,13 +15,30 @@ import edu.illinois.uiuc.sp17.cs425.team4.util.KVUtils;
 import net.jcip.annotations.ThreadSafe;
 
 @ThreadSafe
+/**
+ * Local key-value store.
+ * 
+ * @author bbassi2.
+ *
+ * @param <K> Key type.
+ * @param <V> Value type.
+ */
 public class KVLocalDataStore<K,V> {
+	/** Data. */
 	private final ConcurrentMap<K, ConcurrentNavigableMap<Long,V>> data;
 	
+	/**
+	 * Create an instance.
+	 */
 	public KVLocalDataStore() {
 		this.data = new ConcurrentHashMap<K, ConcurrentNavigableMap<Long,V>>();
 	}
 	
+	/**
+	 * Read all versions for the given key.
+	 * @param key Key.
+	 * @return All versions of the given key.
+	 */
 	private NavigableMap<Long,V> read(K key) {
 		if (this.data.containsKey(key)) {
 			NavigableMap<Long,V> values = new TreeMap<Long, V>(KVUtils.createDecLongComp());
@@ -31,7 +48,11 @@ public class KVLocalDataStore<K,V> {
 			return null;
 		}
 	}
-
+	/**
+	 * Read all versions for the given key.
+	 * @param keys Keys.
+	 * @return All versions of the given key.
+	 */
 	public Map<K, NavigableMap<Long,V>> read(Set<K> keys) {
 		if (keys == null || keys.isEmpty()) {
 			return getSnapshot();
@@ -47,12 +68,21 @@ public class KVLocalDataStore<K,V> {
 		return valuesMap;
 	}
 
+	/**
+	 * Write the given data.
+	 * @param data Data.
+	 */
 	public void write(Map<K, NavigableMap<Long, V>> data) {
 		for (Entry<K, NavigableMap<Long, V>> dataEntry: data.entrySet()) {
 			write(dataEntry.getKey(), dataEntry.getValue());
 		}
 	}
 	
+	/**
+	 * Write the key and varios values along with versions.
+	 * @param key Key.
+	 * @param values Values and their versions.
+	 */
 	private void write(K key, NavigableMap<Long, V> values) {
 		ConcurrentNavigableMap<Long, V> timestampedValues = new ConcurrentSkipListMap<Long, V>(KVUtils.createDecLongComp());
 		// Atomically add an empty value map if the key is new.
@@ -66,6 +96,10 @@ public class KVLocalDataStore<K,V> {
 	}
 	
 
+	/**
+	 * Get snapshot.
+	 * @return Data snapshot.
+	 */
 	public Map<K, NavigableMap<Long, V>> getSnapshot() {
 		Map<K, NavigableMap<Long, V>> dataSnapshot =  new HashMap<K, NavigableMap<Long, V>>();
 		for (Entry<K, ConcurrentNavigableMap<Long, V>> dataEntry: this.data.entrySet()) {
@@ -78,6 +112,11 @@ public class KVLocalDataStore<K,V> {
 		return dataSnapshot;
 	}
 	
+	/**
+	 * Get data snapshot as of given timestamp.
+	 * @param asOfTimestamp As of timestamp.
+	 * @return Local data as of given timestamp.
+	 */
 	public Map<K, NavigableMap<Long, V>> getSnapshot(Long asOfTimestamp) {
 		Map<K, NavigableMap<Long, V>> dataSnapshot =  new HashMap<K, NavigableMap<Long, V>>();
 		for (Entry<K, ConcurrentNavigableMap<Long, V>> dataEntry: this.data.entrySet()) {

@@ -1,5 +1,10 @@
 package edu.illinois.uiuc.sp17.cs425.team4.exceptions;
 
+/**
+ * An exception to be raised when messenger encoutners some error in sending/receiving messages.
+ * 
+ * @author bbassi2
+ */
 public class MessengerException extends RuntimeException {
 
 	/**
