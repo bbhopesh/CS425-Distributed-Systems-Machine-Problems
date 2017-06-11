@@ -16,4 +16,4 @@ include 'api'
 include 'services:webservice'
 */
 
-rootProject.name = 'CS425-MP1'
+rootProject.name = 'CS425-Distributed-Systems-Machine-Problems'
