@@ -18,5 +18,5 @@ All the algorithms listed below were built from scratch directly on top of TCP a
 2. SWIM failure detector.
 3. Cassandra/Chord based ring partitioned key-value store which tolerates certain number of failures by making those many extra copies. These copies were made when SWIM failure detector detected failures.
 4. Two-phase locking for serial equivalence in distributed transactions.
-5. Deadlock detection b constructing wait for graph between transactions.
+5. Deadlock detection by constructing wait for graph between transactions.
 
