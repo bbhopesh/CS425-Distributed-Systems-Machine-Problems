@@ -11,17 +11,12 @@ The three machine problems are as following:
 * Rest of the directory structure is in accordance with gradle/maven defalt directory structure.
 
 
-# Key algorithms implemented and other learnings
+# Key algorithms implemented
+All the algorithms listed below were built from scratch directly on top of TCP and without use of any of the distributed systems frameworks/abstractions like RPC etc. Even though you would use frameworks in practical systems, it made sense to not use when main aim was learning.
+
 1. ISIS totally ordered multicast.
 2. SWIM failure detector.
 3. Cassandra/Chord based ring partitioned key-value store which tolerates certain number of failures by making those many extra copies. These copies were made when SWIM failure detector detected failures.
 4. Two-phase locking for serial equivalence in distributed transactions.
 5. Deadlock detection b constructing wait for graph between transactions.
-
-
-# Authors
-Bhopesh Bassi: bbassi2@illinois.edu
-
-Zhongshen Zeng: zzeng9@illinois.edu
-
 
