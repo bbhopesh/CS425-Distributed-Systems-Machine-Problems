@@ -18,6 +18,7 @@ public class SemaphoreTesting {
 	private static class MyThread extends Thread {
 		
 		private final Semaphore s;
+		@SuppressWarnings("unused")
 		private volatile Boolean done;
 		
 		public MyThread(Semaphore s, Boolean done) {
