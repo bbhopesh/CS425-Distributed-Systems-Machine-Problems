@@ -7,7 +7,7 @@ The three machine problems are as following:
 
 
 # Directory structure
-* Detailed problem statements, design documents and instructions to run code are in directory "Problem Statements and Design documents."
+* Detailed problem statements, design documents and instructions to run code are in directory [Problem Statements and Design documents](Problem%20Statements%20and%20Design%20documents).
 * Rest of the directory structure is in accordance with gradle/maven default directory structure.
 
 
